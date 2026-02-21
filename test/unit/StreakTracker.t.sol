@@ -2,15 +2,25 @@
 pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
+import {RoleManager} from "../../src/access/RoleManager.sol";
 import {StreakTracker} from "../../src/gamification/StreakTracker.sol";
 
 contract StreakTrackerTest is Test {
+    RoleManager public roleManager;
     StreakTracker public streakTracker;
+    address public admin;
     address public user;
 
     function setUp() public {
-        streakTracker = new StreakTracker();
+        admin = makeAddr("admin");
         user = makeAddr("user");
+
+        vm.startPrank(admin);
+        roleManager = new RoleManager(admin);
+        streakTracker = new StreakTracker(address(roleManager));
+        roleManager.grantRewardMinter(address(this));
+        vm.stopPrank();
+
         // Start at a known timestamp (day 1000)
         vm.warp(1000 days);
     }
@@ -144,5 +154,14 @@ contract StreakTrackerTest is Test {
             if (i < 5) vm.warp(block.timestamp + 1 days);
         }
         assertEq(streakTracker.getStreakMultiplier(user), 11_000); // 3+ but below 7
+    }
+
+    // --- Reverse Tests ---
+
+    function test_RecordParticipation_RevertsWhen_Unauthorized() public {
+        address attacker = makeAddr("attacker");
+        vm.prank(attacker);
+        vm.expectRevert(StreakTracker.Unauthorized.selector);
+        streakTracker.recordParticipation(user);
     }
 }

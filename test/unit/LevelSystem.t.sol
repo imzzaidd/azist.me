@@ -18,9 +18,12 @@ contract LevelSystemTest is Test {
         caller = makeAddr("caller");
         user = makeAddr("user");
 
-        vm.prank(admin);
+        vm.startPrank(admin);
         roleManager = new RoleManager(admin);
         levelSystem = new LevelSystem(address(roleManager));
+        roleManager.grantRewardMinter(address(this));
+        roleManager.grantRewardMinter(caller);
+        vm.stopPrank();
     }
 
     // --- Positive Tests: XP ---
@@ -132,6 +135,13 @@ contract LevelSystemTest is Test {
     function test_AddXP_RevertsWhen_ZeroAmount() public {
         vm.expectRevert(LevelSystem.ZeroAmount.selector);
         levelSystem.addXP(user, AreaRegistry.AreaType.Health, 0);
+    }
+
+    function test_AddXP_RevertsWhen_Unauthorized() public {
+        address attacker = makeAddr("attacker");
+        vm.prank(attacker);
+        vm.expectRevert(LevelSystem.Unauthorized.selector);
+        levelSystem.addXP(user, AreaRegistry.AreaType.Health, 100);
     }
 
     // --- Boundary Tests ---

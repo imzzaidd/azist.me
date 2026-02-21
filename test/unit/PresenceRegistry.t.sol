@@ -36,6 +36,7 @@ contract PresenceRegistryTest is Test {
         epochManager = new EpochManager(address(roleManager), address(areaRegistry));
         presenceRegistry =
             new PresenceRegistry(address(roleManager), address(epochManager), address(areaRegistry));
+        epochManager.setPresenceRegistry(address(presenceRegistry));
         roleManager.grantEpochCreator(creator);
         roleManager.grantValidator(validator);
         vm.stopPrank();

@@ -19,9 +19,11 @@ contract BadgeManagerTest is Test {
         user = makeAddr("user");
         recipient = makeAddr("recipient");
 
-        vm.prank(admin);
+        vm.startPrank(admin);
         roleManager = new RoleManager(admin);
         badgeManager = new BadgeManager(address(roleManager));
+        roleManager.grantRewardMinter(address(this));
+        vm.stopPrank();
     }
 
     // --- Positive Tests: Award ---
@@ -105,6 +107,14 @@ contract BadgeManagerTest is Test {
         uint256 badgeId = badgeManager.BADGE_WEEK_WARRIOR();
         badgeManager.awardBadge(user, badgeId);
         vm.expectRevert(BadgeManager.BadgeAlreadyAwarded.selector);
+        badgeManager.awardBadge(user, badgeId);
+    }
+
+    function test_AwardBadge_RevertsWhen_Unauthorized() public {
+        address attacker = makeAddr("attacker");
+        uint256 badgeId = badgeManager.BADGE_WEEK_WARRIOR();
+        vm.prank(attacker);
+        vm.expectRevert(BadgeManager.Unauthorized.selector);
         badgeManager.awardBadge(user, badgeId);
     }
 

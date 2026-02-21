@@ -43,7 +43,7 @@ contract Deploy is Script {
         LevelSystem levelSystem = new LevelSystem(address(roleManager));
         console.log("LevelSystem:", address(levelSystem));
 
-        StreakTracker streakTracker = new StreakTracker();
+        StreakTracker streakTracker = new StreakTracker(address(roleManager));
         console.log("StreakTracker:", address(streakTracker));
 
         BadgeManager badgeManager = new BadgeManager(address(roleManager));
@@ -62,7 +62,10 @@ contract Deploy is Script {
         );
         console.log("RewardDistributor:", address(distributor));
 
-        // 8. Grant roles
+        // 8. Wire contracts
+        epochManager.setPresenceRegistry(address(presenceRegistry));
+
+        // 9. Grant roles
         roleManager.grantRewardMinter(address(distributor));
         roleManager.grantEpochCreator(deployer);
         roleManager.grantValidator(deployer);

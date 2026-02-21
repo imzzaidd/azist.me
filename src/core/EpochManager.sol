@@ -28,6 +28,8 @@ contract EpochManager {
     RoleManager public immutable ROLE_MANAGER;
     AreaRegistry public immutable AREA_REGISTRY;
 
+    address public presenceRegistry;
+
     uint256 public epochCount;
     mapping(uint256 => Epoch) public epochs;
 
@@ -42,6 +44,7 @@ contract EpochManager {
     error AreaNotActive();
     error InvalidStateTransition(EpochState current, EpochState target);
     error EpochNotFound();
+    error OnlyPresenceRegistry();
 
     modifier onlyEpochCreator() {
         _checkEpochCreator();
@@ -122,7 +125,13 @@ contract EpochManager {
         emit EpochStateChanged(epochId, oldState, EpochState.Finalized);
     }
 
+    function setPresenceRegistry(address _presenceRegistry) external {
+        if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.DEFAULT_ADMIN_ROLE(), msg.sender)) revert Unauthorized();
+        presenceRegistry = _presenceRegistry;
+    }
+
     function incrementParticipantCount(uint256 epochId) external {
+        if (msg.sender != presenceRegistry) revert OnlyPresenceRegistry();
         Epoch storage epoch = _getEpoch(epochId);
         epoch.participantCount++;
     }
