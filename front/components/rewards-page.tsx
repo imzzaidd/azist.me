@@ -191,7 +191,7 @@ export function RewardsPage() {
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
             <button onClick={() => setCurrentPage("landing")} className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary"><Zap className="h-4 w-4 text-primary-foreground" /></div>
-              <span className="font-display text-lg font-bold text-foreground">PoP Rewards</span>
+              <span className="font-display text-lg font-bold text-foreground">azist.me</span>
             </button>
           </div>
         </nav>
