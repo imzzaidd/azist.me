@@ -1,0 +1,45 @@
+name: Deployment Dry Run
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dry-run:
+    name: Deployment Simulation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Simulate deployment (dry run)
+        run: |
+          forge script script/Deploy.s.sol --fork-url https://sepolia.drpc.org -vvv 2>&1 | tee deploy-output.txt
+          echo "## Deployment Dry Run" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "(RoleManager:|AzistToken:|AreaRegistry:|EpochManager:|PresenceRegistry:|LevelSystem:|StreakTracker:|BadgeManager:|RewardDistributor:|Deployment complete)" deploy-output.txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "See full logs" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Estimate deployment gas
+        run: |
+          echo "## Deployment Gas Estimates" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          forge script script/Deploy.s.sol --fork-url https://sepolia.drpc.org 2>&1 | grep -i "gas" >> $GITHUB_STEP_SUMMARY 2>&1 || echo "Gas estimates available in full logs" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

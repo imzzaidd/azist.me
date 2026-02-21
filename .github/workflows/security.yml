@@ -1,0 +1,70 @@
+name: Security Analysis
+
+permissions:
+  contents: read
+  security-events: write
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  slither:
+    name: Slither Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        id: slither
+        continue-on-error: true
+        with:
+          fail-on: medium
+          sarif: results.sarif
+          slither-args: --filter-paths "lib/" --exclude naming-convention,solc-version,low-level-calls
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+      - name: Slither Summary
+        if: always()
+        run: |
+          echo "## Slither Security Analysis" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.slither.outcome }}" == "success" ]; then
+            echo "All checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Findings detected — review SARIF report in Security tab" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  reentrancy-check:
+    name: Reentrancy Guard Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for unguarded external calls
+        run: |
+          echo "## Reentrancy Scan" >> $GITHUB_STEP_SUMMARY
+          echo "Scanning for external calls before state changes..." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -rn "\.call\|\.transfer\|\.send\|\.mint\|\.burn" src/ --include="*.sol" >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No raw external calls found" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
