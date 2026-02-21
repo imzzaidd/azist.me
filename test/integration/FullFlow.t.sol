@@ -71,8 +71,9 @@ contract FullFlowTest is Test {
         uint64 start = uint64(block.timestamp);
         uint64 end = uint64(block.timestamp + 8 hours);
         vm.prank(creator);
-        uint256 epochId =
-            epochManager.createEpoch("Beach Cleanup CDMX", "Playa del Carmen", AreaRegistry.AreaType.Environmental, start, end, 50);
+        uint256 epochId = epochManager.createEpoch(
+            "Beach Cleanup CDMX", "Playa del Carmen", AreaRegistry.AreaType.Environmental, start, end, 50
+        );
 
         // 2. Activate the epoch
         vm.prank(creator);
@@ -147,8 +148,9 @@ contract FullFlowTest is Test {
         uint64 start = uint64(block.timestamp);
         uint64 end = uint64(block.timestamp + 8 hours);
         vm.prank(creator);
-        uint256 epochId =
-            epochManager.createEpoch("Community Service", "Centro CDMX", AreaRegistry.AreaType.Community, start, end, 50);
+        uint256 epochId = epochManager.createEpoch(
+            "Community Service", "Centro CDMX", AreaRegistry.AreaType.Community, start, end, 50
+        );
         vm.prank(creator);
         epochManager.activateEpoch(epochId);
 
@@ -235,8 +237,7 @@ contract FullFlowTest is Test {
         uint64 start = uint64(block.timestamp);
         uint64 end = uint64(block.timestamp + 8 hours);
         vm.prank(creator);
-        uint256 epochId =
-            epochManager.createEpoch("Health Day", "Gym", AreaRegistry.AreaType.Health, start, end, 50);
+        uint256 epochId = epochManager.createEpoch("Health Day", "Gym", AreaRegistry.AreaType.Health, start, end, 50);
         vm.prank(creator);
         epochManager.activateEpoch(epochId);
 

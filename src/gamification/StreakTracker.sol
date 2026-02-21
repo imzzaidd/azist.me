@@ -18,11 +18,15 @@ contract StreakTracker {
 
     error Unauthorized();
 
-    constructor(address _roleManager) {
+    constructor(
+        address _roleManager
+    ) {
         ROLE_MANAGER = RoleManager(_roleManager);
     }
 
-    function recordParticipation(address participant) external {
+    function recordParticipation(
+        address participant
+    ) external {
         if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         uint64 today = uint64(block.timestamp / 1 days);
         uint64 lastDay = lastParticipationDay[participant];
@@ -52,7 +56,9 @@ contract StreakTracker {
         }
     }
 
-    function getStreakMultiplier(address participant) external view returns (uint16) {
+    function getStreakMultiplier(
+        address participant
+    ) external view returns (uint16) {
         uint32 streak = currentStreak[participant];
 
         if (streak >= 30) return 15_000; // 1.5x
@@ -62,11 +68,15 @@ contract StreakTracker {
         return BASIS_POINTS; // 1.0x
     }
 
-    function getCurrentStreak(address participant) external view returns (uint32) {
+    function getCurrentStreak(
+        address participant
+    ) external view returns (uint32) {
         return currentStreak[participant];
     }
 
-    function getLongestStreak(address participant) external view returns (uint32) {
+    function getLongestStreak(
+        address participant
+    ) external view returns (uint32) {
         return longestStreak[participant];
     }
 }

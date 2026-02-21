@@ -56,13 +56,19 @@ contract PresenceRegistry {
         _;
     }
 
-    constructor(address _roleManager, address _epochManager, address _areaRegistry) {
+    constructor(
+        address _roleManager,
+        address _epochManager,
+        address _areaRegistry
+    ) {
         ROLE_MANAGER = RoleManager(_roleManager);
         EPOCH_MANAGER = EpochManager(_epochManager);
         AREA_REGISTRY = AreaRegistry(_areaRegistry);
     }
 
-    function checkIn(uint256 epochId) external {
+    function checkIn(
+        uint256 epochId
+    ) external {
         if (!EPOCH_MANAGER.isEpochActive(epochId)) revert EpochNotActive();
 
         EpochManager.Epoch memory epoch = EPOCH_MANAGER.getEpoch(epochId);
@@ -83,7 +89,9 @@ contract PresenceRegistry {
         emit CheckedIn(epochId, msg.sender, uint64(block.timestamp));
     }
 
-    function checkOut(uint256 epochId) external {
+    function checkOut(
+        uint256 epochId
+    ) external {
         PresenceRecord storage record = presences[epochId][msg.sender];
         if (record.state != PresenceState.Active) revert NotCheckedIn();
 
@@ -105,7 +113,10 @@ contract PresenceRegistry {
         emit CheckedOut(epochId, msg.sender, checkOutTime, duration);
     }
 
-    function verifyPresence(uint256 epochId, address participant) external onlyValidator {
+    function verifyPresence(
+        uint256 epochId,
+        address participant
+    ) external onlyValidator {
         PresenceRecord storage record = presences[epochId][participant];
         if (record.state != PresenceState.CheckedOut) {
             revert InvalidPresenceState(record.state, PresenceState.CheckedOut);
@@ -117,7 +128,11 @@ contract PresenceRegistry {
         emit PresenceVerified(epochId, participant, msg.sender);
     }
 
-    function disputePresence(uint256 epochId, address participant, string calldata reason) external onlyValidator {
+    function disputePresence(
+        uint256 epochId,
+        address participant,
+        string calldata reason
+    ) external onlyValidator {
         PresenceRecord storage record = presences[epochId][participant];
         if (record.state != PresenceState.CheckedOut && record.state != PresenceState.Active) {
             revert InvalidPresenceState(record.state, PresenceState.CheckedOut);
@@ -134,7 +149,10 @@ contract PresenceRegistry {
         emit PresenceDisputed(epochId, participant, msg.sender, reason);
     }
 
-    function forceCheckOut(uint256 epochId, address participant) external {
+    function forceCheckOut(
+        uint256 epochId,
+        address participant
+    ) external {
         bool isValidator = ROLE_MANAGER.hasRole(ROLE_MANAGER.VALIDATOR_ROLE(), msg.sender);
         bool isAdmin = ROLE_MANAGER.hasRole(ROLE_MANAGER.DEFAULT_ADMIN_ROLE(), msg.sender);
         if (!isValidator && !isAdmin) revert Unauthorized();
@@ -160,27 +178,43 @@ contract PresenceRegistry {
         emit ForceCheckedOut(epochId, participant, checkOutTime);
     }
 
-    function getPresence(uint256 epochId, address participant) external view returns (PresenceRecord memory) {
+    function getPresence(
+        uint256 epochId,
+        address participant
+    ) external view returns (PresenceRecord memory) {
         return presences[epochId][participant];
     }
 
-    function getPresenceDuration(uint256 epochId, address participant) external view returns (uint64) {
+    function getPresenceDuration(
+        uint256 epochId,
+        address participant
+    ) external view returns (uint64) {
         return presences[epochId][participant].duration;
     }
 
-    function getPresenceState(uint256 epochId, address participant) external view returns (PresenceState) {
+    function getPresenceState(
+        uint256 epochId,
+        address participant
+    ) external view returns (PresenceState) {
         return presences[epochId][participant].state;
     }
 
-    function getEpochParticipants(uint256 epochId) external view returns (address[] memory) {
+    function getEpochParticipants(
+        uint256 epochId
+    ) external view returns (address[] memory) {
         return epochParticipants[epochId];
     }
 
-    function getEpochParticipantCount(uint256 epochId) external view returns (uint256) {
+    function getEpochParticipantCount(
+        uint256 epochId
+    ) external view returns (uint256) {
         return epochParticipants[epochId].length;
     }
 
-    function isRewardEligible(uint256 epochId, address participant) external view returns (bool) {
+    function isRewardEligible(
+        uint256 epochId,
+        address participant
+    ) external view returns (bool) {
         PresenceState state = presences[epochId][participant].state;
         if (state != PresenceState.CheckedOut && state != PresenceState.Verified) return false;
 

@@ -34,8 +34,7 @@ contract PresenceRegistryTest is Test {
         roleManager = new RoleManager(admin);
         areaRegistry = new AreaRegistry(address(roleManager));
         epochManager = new EpochManager(address(roleManager), address(areaRegistry));
-        presenceRegistry =
-            new PresenceRegistry(address(roleManager), address(epochManager), address(areaRegistry));
+        presenceRegistry = new PresenceRegistry(address(roleManager), address(epochManager), address(areaRegistry));
         epochManager.setPresenceRegistry(address(presenceRegistry));
         roleManager.grantEpochCreator(creator);
         roleManager.grantValidator(validator);
@@ -45,7 +44,8 @@ contract PresenceRegistryTest is Test {
         uint64 start = uint64(block.timestamp + 1 hours);
         uint64 end = uint64(block.timestamp + 10 hours);
         vm.prank(creator);
-        epochId = epochManager.createEpoch("Beach Cleanup", "Playa", AreaRegistry.AreaType.Environmental, start, end, 100);
+        epochId =
+            epochManager.createEpoch("Beach Cleanup", "Playa", AreaRegistry.AreaType.Environmental, start, end, 100);
         vm.prank(creator);
         epochManager.activateEpoch(epochId);
     }

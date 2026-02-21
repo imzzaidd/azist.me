@@ -15,11 +15,16 @@ contract AzistToken is ERC20, ERC20Burnable {
         _;
     }
 
-    constructor(address _roleManager) ERC20("Azist Token", "AZIST") {
+    constructor(
+        address _roleManager
+    ) ERC20("Azist Token", "AZIST") {
         ROLE_MANAGER = RoleManager(_roleManager);
     }
 
-    function mint(address to, uint256 amount) external onlyMinter {
+    function mint(
+        address to,
+        uint256 amount
+    ) external onlyMinter {
         _mint(to, amount);
     }
 

@@ -10,32 +10,46 @@ contract RoleManager is AccessControl {
 
     error ZeroAddress();
 
-    constructor(address admin) {
+    constructor(
+        address admin
+    ) {
         if (admin == address(0)) revert ZeroAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function grantEpochCreator(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantEpochCreator(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(EPOCH_CREATOR_ROLE, account);
     }
 
-    function grantValidator(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantValidator(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(VALIDATOR_ROLE, account);
     }
 
-    function grantRewardMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantRewardMinter(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(REWARD_MINTER_ROLE, account);
     }
 
-    function revokeEpochCreator(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeEpochCreator(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(EPOCH_CREATOR_ROLE, account);
     }
 
-    function revokeValidator(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeValidator(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(VALIDATOR_ROLE, account);
     }
 
-    function revokeRewardMinter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeRewardMinter(
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(REWARD_MINTER_ROLE, account);
     }
 }

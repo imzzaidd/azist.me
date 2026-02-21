@@ -82,7 +82,9 @@ contract AzistTokenTest is Test {
 
     // --- Fuzz Tests ---
 
-    function test_Fuzz_Mint_MintsCorrectAmount(uint256 amount) public {
+    function test_Fuzz_Mint_MintsCorrectAmount(
+        uint256 amount
+    ) public {
         amount = bound(amount, 1, type(uint128).max);
         vm.prank(minter);
         token.mint(user, amount);

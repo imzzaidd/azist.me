@@ -36,7 +36,9 @@ contract EpochManagerTest is Test {
 
     function _createDefaultEpoch() internal returns (uint256) {
         vm.prank(creator);
-        return epochManager.createEpoch("Beach Cleanup", "Playa del Carmen", AreaRegistry.AreaType.Environmental, startTime, endTime, 100);
+        return epochManager.createEpoch(
+            "Beach Cleanup", "Playa del Carmen", AreaRegistry.AreaType.Environmental, startTime, endTime, 100
+        );
     }
 
     // --- Positive Tests: Creation ---
@@ -67,7 +69,9 @@ contract EpochManagerTest is Test {
         emit EpochManager.EpochCreated(1, "Beach Cleanup", AreaRegistry.AreaType.Environmental, startTime, endTime);
 
         vm.prank(creator);
-        epochManager.createEpoch("Beach Cleanup", "Playa del Carmen", AreaRegistry.AreaType.Environmental, startTime, endTime, 100);
+        epochManager.createEpoch(
+            "Beach Cleanup", "Playa del Carmen", AreaRegistry.AreaType.Environmental, startTime, endTime, 100
+        );
     }
 
     function test_CreateEpoch_ReturnsEpochId() public {
@@ -222,7 +226,9 @@ contract EpochManagerTest is Test {
         epochManager.activateEpoch(id);
         vm.expectRevert(
             abi.encodeWithSelector(
-                EpochManager.InvalidStateTransition.selector, EpochManager.EpochState.Active, EpochManager.EpochState.Active
+                EpochManager.InvalidStateTransition.selector,
+                EpochManager.EpochState.Active,
+                EpochManager.EpochState.Active
             )
         );
         epochManager.activateEpoch(id);

@@ -79,7 +79,11 @@ contract RewardDistributorTest is Test {
         epochManager.activateEpoch(epochId);
     }
 
-    function _checkInAndOut(address user, uint256 _epochId, uint256 stayDuration) internal {
+    function _checkInAndOut(
+        address user,
+        uint256 _epochId,
+        uint256 stayDuration
+    ) internal {
         vm.prank(user);
         presenceRegistry.checkIn(_epochId);
         vm.warp(block.timestamp + stayDuration);
@@ -87,7 +91,9 @@ contract RewardDistributorTest is Test {
         presenceRegistry.checkOut(_epochId);
     }
 
-    function _finalizeEpoch(uint256 _epochId) internal {
+    function _finalizeEpoch(
+        uint256 _epochId
+    ) internal {
         vm.startPrank(creator);
         epochManager.closeEpoch(_epochId);
         epochManager.finalizeEpoch(_epochId);

@@ -39,7 +39,9 @@ contract AreaRegistry {
         _;
     }
 
-    constructor(address _roleManager) {
+    constructor(
+        address _roleManager
+    ) {
         ROLE_MANAGER = RoleManager(_roleManager);
         _initializeDefaults();
     }
@@ -65,32 +67,47 @@ contract AreaRegistry {
         emit AreaConfigUpdated(area, rewardMultiplier, minStaySeconds, maxRewardDuration);
     }
 
-    function toggleArea(AreaType area, bool active) external onlyAdmin {
+    function toggleArea(
+        AreaType area,
+        bool active
+    ) external onlyAdmin {
         areaConfigs[area].active = active;
         emit AreaToggled(area, active);
     }
 
-    function getAreaConfig(AreaType area) external view returns (AreaConfig memory) {
+    function getAreaConfig(
+        AreaType area
+    ) external view returns (AreaConfig memory) {
         return areaConfigs[area];
     }
 
-    function isAreaActive(AreaType area) external view returns (bool) {
+    function isAreaActive(
+        AreaType area
+    ) external view returns (bool) {
         return areaConfigs[area].active;
     }
 
-    function getRewardMultiplier(AreaType area) external view returns (uint16) {
+    function getRewardMultiplier(
+        AreaType area
+    ) external view returns (uint16) {
         return areaConfigs[area].rewardMultiplier;
     }
 
-    function getMinStay(AreaType area) external view returns (uint64) {
+    function getMinStay(
+        AreaType area
+    ) external view returns (uint64) {
         return areaConfigs[area].minStaySeconds;
     }
 
-    function getMaxDuration(AreaType area) external view returns (uint64) {
+    function getMaxDuration(
+        AreaType area
+    ) external view returns (uint64) {
         return areaConfigs[area].maxRewardDuration;
     }
 
-    function getXpPerMinute(AreaType area) external view returns (uint256) {
+    function getXpPerMinute(
+        AreaType area
+    ) external view returns (uint256) {
         return areaConfigs[area].xpPerMinute;
     }
 

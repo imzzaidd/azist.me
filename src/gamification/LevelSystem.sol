@@ -20,11 +20,17 @@ contract LevelSystem {
     error Unauthorized();
     error ZeroAmount();
 
-    constructor(address _roleManager) {
+    constructor(
+        address _roleManager
+    ) {
         ROLE_MANAGER = RoleManager(_roleManager);
     }
 
-    function addXP(address participant, AreaRegistry.AreaType area, uint256 amount) external {
+    function addXP(
+        address participant,
+        AreaRegistry.AreaType area,
+        uint256 amount
+    ) external {
         if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         if (amount == 0) revert ZeroAmount();
 
@@ -41,30 +47,43 @@ contract LevelSystem {
         }
     }
 
-    function getLevel(address participant) external view returns (uint8) {
+    function getLevel(
+        address participant
+    ) external view returns (uint8) {
         return level[participant];
     }
 
-    function getLevelMultiplier(address participant) external view returns (uint16) {
+    function getLevelMultiplier(
+        address participant
+    ) external view returns (uint16) {
         uint8 lvl = level[participant];
         // Level 0 = 10000 (1.0x), each level adds 100bp (0.01x)
         // Level 10 = 11000 (1.1x), Level 50 = 15000 (1.5x), Level 100 = 20000 (2.0x)
         return uint16(BASIS_POINTS + (uint16(lvl) * 100));
     }
 
-    function getAreaXP(address participant, AreaRegistry.AreaType area) external view returns (uint256) {
+    function getAreaXP(
+        address participant,
+        AreaRegistry.AreaType area
+    ) external view returns (uint256) {
         return areaXP[participant][area];
     }
 
-    function getTotalXP(address participant) external view returns (uint256) {
+    function getTotalXP(
+        address participant
+    ) external view returns (uint256) {
         return totalXP[participant];
     }
 
-    function xpForLevel(uint8 lvl) public pure returns (uint256) {
+    function xpForLevel(
+        uint8 lvl
+    ) public pure returns (uint256) {
         return 100 * uint256(lvl) * uint256(lvl);
     }
 
-    function _calculateLevel(uint256 xp) internal pure returns (uint8) {
+    function _calculateLevel(
+        uint256 xp
+    ) internal pure returns (uint8) {
         uint8 lvl = 0;
         while (lvl < MAX_LEVEL && xp >= xpForLevel(lvl + 1)) {
             lvl++;

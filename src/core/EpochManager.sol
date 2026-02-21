@@ -51,12 +51,17 @@ contract EpochManager {
         _;
     }
 
-    modifier onlyAdminOrCreator(uint256 epochId) {
+    modifier onlyAdminOrCreator(
+        uint256 epochId
+    ) {
         _checkAdminOrCreator(epochId);
         _;
     }
 
-    constructor(address _roleManager, address _areaRegistry) {
+    constructor(
+        address _roleManager,
+        address _areaRegistry
+    ) {
         ROLE_MANAGER = RoleManager(_roleManager);
         AREA_REGISTRY = AreaRegistry(_areaRegistry);
     }
@@ -92,7 +97,9 @@ contract EpochManager {
         return epochId;
     }
 
-    function activateEpoch(uint256 epochId) external onlyAdminOrCreator(epochId) {
+    function activateEpoch(
+        uint256 epochId
+    ) external onlyAdminOrCreator(epochId) {
         Epoch storage epoch = _getEpoch(epochId);
         if (epoch.state != EpochState.Scheduled) {
             revert InvalidStateTransition(epoch.state, EpochState.Active);
@@ -103,7 +110,9 @@ contract EpochManager {
         emit EpochStateChanged(epochId, oldState, EpochState.Active);
     }
 
-    function closeEpoch(uint256 epochId) external onlyAdminOrCreator(epochId) {
+    function closeEpoch(
+        uint256 epochId
+    ) external onlyAdminOrCreator(epochId) {
         Epoch storage epoch = _getEpoch(epochId);
         if (epoch.state != EpochState.Active) {
             revert InvalidStateTransition(epoch.state, EpochState.Closed);
@@ -114,7 +123,9 @@ contract EpochManager {
         emit EpochStateChanged(epochId, oldState, EpochState.Closed);
     }
 
-    function finalizeEpoch(uint256 epochId) external onlyAdminOrCreator(epochId) {
+    function finalizeEpoch(
+        uint256 epochId
+    ) external onlyAdminOrCreator(epochId) {
         Epoch storage epoch = _getEpoch(epochId);
         if (epoch.state != EpochState.Closed) {
             revert InvalidStateTransition(epoch.state, EpochState.Finalized);
@@ -125,39 +136,55 @@ contract EpochManager {
         emit EpochStateChanged(epochId, oldState, EpochState.Finalized);
     }
 
-    function setPresenceRegistry(address _presenceRegistry) external {
+    function setPresenceRegistry(
+        address _presenceRegistry
+    ) external {
         if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.DEFAULT_ADMIN_ROLE(), msg.sender)) revert Unauthorized();
         presenceRegistry = _presenceRegistry;
     }
 
-    function incrementParticipantCount(uint256 epochId) external {
+    function incrementParticipantCount(
+        uint256 epochId
+    ) external {
         if (msg.sender != presenceRegistry) revert OnlyPresenceRegistry();
         Epoch storage epoch = _getEpoch(epochId);
         epoch.participantCount++;
     }
 
-    function getEpoch(uint256 epochId) external view returns (Epoch memory) {
+    function getEpoch(
+        uint256 epochId
+    ) external view returns (Epoch memory) {
         return _getEpoch(epochId);
     }
 
-    function getEpochState(uint256 epochId) external view returns (EpochState) {
+    function getEpochState(
+        uint256 epochId
+    ) external view returns (EpochState) {
         return _getEpoch(epochId).state;
     }
 
-    function getEpochArea(uint256 epochId) external view returns (AreaRegistry.AreaType) {
+    function getEpochArea(
+        uint256 epochId
+    ) external view returns (AreaRegistry.AreaType) {
         return _getEpoch(epochId).area;
     }
 
-    function getEpochEndTime(uint256 epochId) external view returns (uint64) {
+    function getEpochEndTime(
+        uint256 epochId
+    ) external view returns (uint64) {
         return _getEpoch(epochId).endTime;
     }
 
-    function isEpochActive(uint256 epochId) external view returns (bool) {
+    function isEpochActive(
+        uint256 epochId
+    ) external view returns (bool) {
         if (epochId == 0 || epochId > epochCount) return false;
         return epochs[epochId].state == EpochState.Active;
     }
 
-    function _getEpoch(uint256 epochId) internal view returns (Epoch storage) {
+    function _getEpoch(
+        uint256 epochId
+    ) internal view returns (Epoch storage) {
         if (epochId == 0 || epochId > epochCount) revert EpochNotFound();
         return epochs[epochId];
     }
@@ -168,7 +195,9 @@ contract EpochManager {
         }
     }
 
-    function _checkAdminOrCreator(uint256 epochId) internal view {
+    function _checkAdminOrCreator(
+        uint256 epochId
+    ) internal view {
         bool isAdmin = ROLE_MANAGER.hasRole(ROLE_MANAGER.DEFAULT_ADMIN_ROLE(), msg.sender);
         bool isCreator = epochId > 0 && epochId <= epochCount && epochs[epochId].creator == msg.sender;
         if (!isAdmin && !isCreator) revert Unauthorized();

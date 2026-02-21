@@ -59,7 +59,10 @@ contract RewardDistributor {
         BADGE_MANAGER = BadgeManager(_badgeManager);
     }
 
-    function calculateReward(uint256 epochId, address participant) public view returns (uint256) {
+    function calculateReward(
+        uint256 epochId,
+        address participant
+    ) public view returns (uint256) {
         if (!PRESENCE_REGISTRY.isRewardEligible(epochId, participant)) return 0;
 
         uint64 duration = PRESENCE_REGISTRY.getPresenceDuration(epochId, participant);
@@ -81,7 +84,10 @@ contract RewardDistributor {
         return reward;
     }
 
-    function distributeReward(uint256 epochId, address participant) public onlyAdmin {
+    function distributeReward(
+        uint256 epochId,
+        address participant
+    ) public onlyAdmin {
         EpochManager.EpochState state = EPOCH_MANAGER.getEpochState(epochId);
         if (state != EpochManager.EpochState.Finalized) revert EpochNotFinalized();
         if (rewarded[epochId][participant]) revert AlreadyRewarded();
@@ -110,18 +116,21 @@ contract RewardDistributor {
         }
     }
 
-    function batchDistribute(uint256 epochId, address[] calldata participants) external onlyAdmin {
+    function batchDistribute(
+        uint256 epochId,
+        address[] calldata participants
+    ) external onlyAdmin {
         for (uint256 i = 0; i < participants.length; i++) {
-            if (
-                !rewarded[epochId][participants[i]]
-                    && PRESENCE_REGISTRY.isRewardEligible(epochId, participants[i])
-            ) {
+            if (!rewarded[epochId][participants[i]] && PRESENCE_REGISTRY.isRewardEligible(epochId, participants[i])) {
                 distributeReward(epochId, participants[i]);
             }
         }
     }
 
-    function _addXP(uint256 epochId, address participant) internal {
+    function _addXP(
+        uint256 epochId,
+        address participant
+    ) internal {
         uint64 duration = PRESENCE_REGISTRY.getPresenceDuration(epochId, participant);
         AreaRegistry.AreaType area = EPOCH_MANAGER.getEpochArea(epochId);
         uint256 xpPerMinute = AREA_REGISTRY.getXpPerMinute(area);
@@ -134,7 +143,10 @@ contract RewardDistributor {
         }
     }
 
-    function _checkBadges(address participant, uint256 epochId) internal returns (uint256 badgesAwarded) {
+    function _checkBadges(
+        address participant,
+        uint256 epochId
+    ) internal returns (uint256 badgesAwarded) {
         // Streak badges
         uint32 streak = STREAK_TRACKER.getCurrentStreak(participant);
         if (streak >= 7 && !BADGE_MANAGER.hasBadge(participant, BADGE_MANAGER.BADGE_WEEK_WARRIOR())) {

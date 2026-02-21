@@ -37,12 +37,17 @@ contract BadgeManager is ERC1155 {
     error BadgeAlreadyAwarded();
     error InvalidBadgeId();
 
-    constructor(address _roleManager) ERC1155("") {
+    constructor(
+        address _roleManager
+    ) ERC1155("") {
         ROLE_MANAGER = RoleManager(_roleManager);
         _initBadgeNames();
     }
 
-    function awardBadge(address participant, uint256 badgeId) external {
+    function awardBadge(
+        address participant,
+        uint256 badgeId
+    ) external {
         if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         if (badgeId == 0 || badgeId > TOTAL_BADGES) revert InvalidBadgeId();
         if (hasBadge[participant][badgeId]) revert BadgeAlreadyAwarded();
@@ -54,19 +59,25 @@ contract BadgeManager is ERC1155 {
         emit BadgeAwarded(participant, badgeId, badgeNames[badgeId]);
     }
 
-    function getBadgeCount(address participant) external view returns (uint256) {
+    function getBadgeCount(
+        address participant
+    ) external view returns (uint256) {
         return badgeCount[participant];
     }
 
-    function getBadgeName(uint256 badgeId) external view returns (string memory) {
+    function getBadgeName(
+        uint256 badgeId
+    ) external view returns (string memory) {
         return badgeNames[badgeId];
     }
 
     // Soulbound: prevent transfers
-    function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
-        internal
-        override
-    {
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal override {
         if (from != address(0) && to != address(0)) {
             revert SoulboundTransfer();
         }
