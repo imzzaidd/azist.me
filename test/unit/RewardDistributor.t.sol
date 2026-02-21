@@ -159,8 +159,8 @@ contract RewardDistributorTest is Test {
         distributor.distributeReward(epochId, user1);
 
         // 60 min * 15 xp/min (environmental) = 900 XP
-        assertEq(levelSystem.getTotalXP(user1), 900);
-        assertEq(levelSystem.getAreaXP(user1, AreaRegistry.AreaType.Environmental), 900);
+        assertEq(levelSystem.getTotalXp(user1), 900);
+        assertEq(levelSystem.getAreaXp(user1, AreaRegistry.AreaType.Environmental), 900);
     }
 
     function test_DistributeReward_RecordsStreak() public {

@@ -10,11 +10,11 @@ contract LevelSystem {
 
     RoleManager public immutable ROLE_MANAGER;
 
-    mapping(address => mapping(AreaRegistry.AreaType => uint256)) public areaXP;
-    mapping(address => uint256) public totalXP;
+    mapping(address => mapping(AreaRegistry.AreaType => uint256)) public areaXp;
+    mapping(address => uint256) public totalXp;
     mapping(address => uint8) public level;
 
-    event XPAdded(address indexed participant, AreaRegistry.AreaType indexed area, uint256 amount, uint256 newTotal);
+    event XpAdded(address indexed participant, AreaRegistry.AreaType indexed area, uint256 amount, uint256 newTotal);
     event LevelUp(address indexed participant, uint8 oldLevel, uint8 newLevel);
 
     error Unauthorized();
@@ -26,7 +26,7 @@ contract LevelSystem {
         ROLE_MANAGER = RoleManager(_roleManager);
     }
 
-    function addXP(
+    function addXp(
         address participant,
         AreaRegistry.AreaType area,
         uint256 amount
@@ -34,12 +34,12 @@ contract LevelSystem {
         if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         if (amount == 0) revert ZeroAmount();
 
-        areaXP[participant][area] += amount;
-        totalXP[participant] += amount;
+        areaXp[participant][area] += amount;
+        totalXp[participant] += amount;
 
-        emit XPAdded(participant, area, amount, totalXP[participant]);
+        emit XpAdded(participant, area, amount, totalXp[participant]);
 
-        uint8 newLevel = _calculateLevel(totalXP[participant]);
+        uint8 newLevel = _calculateLevel(totalXp[participant]);
         if (newLevel > level[participant]) {
             uint8 oldLevel = level[participant];
             level[participant] = newLevel;
@@ -62,17 +62,17 @@ contract LevelSystem {
         return uint16(BASIS_POINTS + (uint16(lvl) * 100));
     }
 
-    function getAreaXP(
+    function getAreaXp(
         address participant,
         AreaRegistry.AreaType area
     ) external view returns (uint256) {
-        return areaXP[participant][area];
+        return areaXp[participant][area];
     }
 
-    function getTotalXP(
+    function getTotalXp(
         address participant
     ) external view returns (uint256) {
-        return totalXP[participant];
+        return totalXp[participant];
     }
 
     function xpForLevel(
