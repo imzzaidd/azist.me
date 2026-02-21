@@ -41,8 +41,12 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="Azist logo"
+              className="h-7 w-7 object-contain"
+            />
+          </div>
             <span className="font-display text-lg font-bold text-foreground">azist.me</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
