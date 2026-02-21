@@ -1,66 +1,70 @@
-## Foundry
+# azist.me — Proof of Presence (PoP)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+On-chain proof of **when** you arrived, **how long** you stayed, and **rewards** for sustained participation across 5 societal areas.
 
-Foundry consists of:
+Built for **Monad Blitz CDMX** hackathon. Inspired by [7aychain](https://github.com/7ayLabs/7aychain) and [7ay-presence](https://github.com/7ayLabs/7ay-presence).
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Architecture
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```
+src/
+├── access/RoleManager.sol              — Role-based access control (4 roles)
+├── token/AzistToken.sol                — ERC20 reward token (AZIST)
+├── areas/AreaRegistry.sol              — 5 societal areas with configurable params
+├── core/
+│   ├── EpochManager.sol                — Epoch lifecycle (Scheduled → Active → Closed → Finalized)
+│   ├── PresenceRegistry.sol            — Check-in/check-out with duration tracking
+│   └── RewardDistributor.sol           — Duration-based reward calculation & distribution
+└── gamification/
+    ├── LevelSystem.sol                 — XP & level progression (100 × n² curve)
+    ├── StreakTracker.sol               — Consecutive participation streaks
+    └── BadgeManager.sol                — 12 soulbound ERC1155 achievement badges
 ```
 
-### Test
+## Areas
 
-```shell
-$ forge test
+| Area | Multiplier | Min Stay | Max Duration | XP/min |
+|------|-----------|----------|-------------|--------|
+| Environmental | 1.5x | 30 min | 6 hours | 15 |
+| Community | 1.3x | 20 min | 8 hours | 12 |
+| Education | 1.2x | 45 min | 4 hours | 10 |
+| Health | 1.1x | 15 min | 3 hours | 8 |
+| Cultural | 1.4x | 30 min | 5 hours | 13 |
+
+## Reward Formula
+
+```
+reward = (minutes × 1 AZIST) × areaMultiplier × levelMultiplier × streakMultiplier
 ```
 
-### Format
+## Quick Start
 
 ```shell
-$ forge fmt
+# Build
+forge build
+
+# Test (176 tests)
+forge test
+
+# Test with verbose output
+forge test -vvv
+
+# Gas report
+forge test --gas-report
+
+# Format
+forge fmt
+
+# Deploy (dry run)
+forge script script/Deploy.s.sol --fork-url <rpc_url>
 ```
 
-### Gas Snapshots
+## Tech Stack
 
-```shell
-$ forge snapshot
-```
+- **Solidity** ^0.8.26 (Cancun EVM)
+- **Foundry** (Forge, Cast, Anvil)
+- **OpenZeppelin** v5.5.0 (AccessControl, ERC20, ERC1155)
 
-### Anvil
+## License
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+MIT
