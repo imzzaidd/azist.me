@@ -14,9 +14,6 @@
 # Claude Code
 .claude/
 
-# GitHub
-.github/
-
 # OS
 .DS_Store
 Thumbs.db
