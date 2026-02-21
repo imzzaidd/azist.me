@@ -12,9 +12,10 @@
 !.env.example
 
 # Claude Code
-.claude/plans/
-.claude/todos/
-.claude/settings.local.json
+.claude/
+
+# GitHub
+.github/
 
 # OS
 .DS_Store
