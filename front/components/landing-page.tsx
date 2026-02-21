@@ -47,9 +47,13 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-bold text-foreground">PoP Rewards</span>
+            <img 
+              src="/logo.png" 
+              alt="Azist logo"
+              className="h-7 w-7 object-contain"
+            />
+          </div>
+            <span className="font-display text-lg font-bold text-foreground">azist.me</span>
           </div>
           <div className="hidden items-center gap-8 md:flex">
             <button onClick={() => setCurrentPage("events")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Eventos</button>
@@ -131,6 +135,7 @@ export function LandingPage() {
       </section>
 
       {/* Stats */}
+      {/*}
       <section className="border-t border-border/50 py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
@@ -147,6 +152,60 @@ export function LandingPage() {
                 <p className="mt-2 text-sm text-muted-foreground">{stat.label}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      */} 
+
+            {/* About Protocol */}
+      <section className="border-t border-border/50 py-20 md:py-28">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
+              ¿Qué es azist.me?
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+              azist.me es un protocolo de <span className="text-primary font-medium">Proof of Presence (PoP) </span> 
+              que recompensa tu participación real en eventos y actividades comunitarias.
+              Registramos <span className="text-foreground font-medium">cuándo llegas</span>, 
+              <span className="text-foreground font-medium"> cuánto tiempo permaneces</span> y 
+              convertimos tu constancia en recompensas on-chain.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 md:grid-cols-3">
+            <div className="rounded-2xl border border-border/50 bg-card p-8">
+              <h3 className="mb-3 font-display text-xl font-semibold text-foreground">
+                Presencia verificable
+              </h3>
+              <p className="leading-relaxed text-muted-foreground">
+                Cada check-in y check-out queda registrado en blockchain, generando
+                un historial transparente y confiable de tu participación.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/50 bg-card p-8">
+              <h3 className="mb-3 font-display text-xl font-semibold text-foreground">
+                5 áreas de impacto
+              </h3>
+              <p className="leading-relaxed text-muted-foreground">
+                Ambiental, Comunidad, Educación, Salud y Cultura. 
+                Cada área tiene multiplicadores que aumentan tus recompensas
+                según tu nivel y tu racha de participación.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/50 bg-card p-8">
+              <h3 className="mb-3 font-display text-xl font-semibold text-foreground">
+                Recompensas dinámicas
+              </h3>
+              <p className="leading-relaxed text-muted-foreground">
+                Ganas tokens AZIST según los minutos que participes.
+                Tu nivel, constancia y área elegida potencian tus ganancias,
+                creando un sistema justo y gamificado.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -179,7 +238,7 @@ export function LandingPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
               <Zap className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="text-sm font-semibold text-foreground">PoP Rewards</span>
+            <span className="text-sm font-semibold text-foreground">azist.me</span>
           </div>
           <p className="text-sm text-muted-foreground">2026 Proof of Presence. Construido en blockchain.</p>
         </div>

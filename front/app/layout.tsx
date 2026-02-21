@@ -11,7 +11,7 @@ const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const _spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk" })
 
 export const metadata: Metadata = {
-  title: 'PoP Rewards - Proof of Presence',
+  title: 'azist.me - Proof of Presence',
   description: 'Gana recompensas por asistir a eventos del mundo real. Asiste, valida y gana.',
   generator: 'v0.app',
   icons: {
