@@ -43,6 +43,7 @@ contract BadgeManager is ERC1155 {
     }
 
     function awardBadge(address participant, uint256 badgeId) external {
+        if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         if (badgeId == 0 || badgeId > TOTAL_BADGES) revert InvalidBadgeId();
         if (hasBadge[participant][badgeId]) revert BadgeAlreadyAwarded();
 

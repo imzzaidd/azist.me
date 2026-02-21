@@ -48,8 +48,9 @@ contract RewardDistributorTest is Test {
         areaRegistry = new AreaRegistry(address(roleManager));
         epochManager = new EpochManager(address(roleManager), address(areaRegistry));
         presenceRegistry = new PresenceRegistry(address(roleManager), address(epochManager), address(areaRegistry));
+        epochManager.setPresenceRegistry(address(presenceRegistry));
         levelSystem = new LevelSystem(address(roleManager));
-        streakTracker = new StreakTracker();
+        streakTracker = new StreakTracker(address(roleManager));
         badgeManager = new BadgeManager(address(roleManager));
         distributor = new RewardDistributor(
             address(roleManager),

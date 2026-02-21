@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import {RoleManager} from "../access/RoleManager.sol";
+
 contract StreakTracker {
     uint16 public constant BASIS_POINTS = 10_000;
+
+    RoleManager public immutable ROLE_MANAGER;
 
     mapping(address => uint64) public lastParticipationDay;
     mapping(address => uint32) public currentStreak;
@@ -12,7 +16,14 @@ contract StreakTracker {
     event StreakReset(address indexed participant);
     event NewLongestStreak(address indexed participant, uint32 streak);
 
+    error Unauthorized();
+
+    constructor(address _roleManager) {
+        ROLE_MANAGER = RoleManager(_roleManager);
+    }
+
     function recordParticipation(address participant) external {
+        if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         uint64 today = uint64(block.timestamp / 1 days);
         uint64 lastDay = lastParticipationDay[participant];
 

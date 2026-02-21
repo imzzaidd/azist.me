@@ -25,6 +25,7 @@ contract LevelSystem {
     }
 
     function addXP(address participant, AreaRegistry.AreaType area, uint256 amount) external {
+        if (!ROLE_MANAGER.hasRole(ROLE_MANAGER.REWARD_MINTER_ROLE(), msg.sender)) revert Unauthorized();
         if (amount == 0) revert ZeroAmount();
 
         areaXP[participant][area] += amount;
