@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { Web3Provider } from '@/lib/web3/providers'
 import { AppProvider } from '@/lib/app-context'
+import '@rainbow-me/rainbowkit/styles.css'
 import './globals.css'
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -47,11 +49,13 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${_inter.variable} ${_spaceGrotesk.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <AppProvider>
-            {children}
-          </AppProvider>
-        </ThemeProvider>
+        <Web3Provider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+            <AppProvider>
+              {children}
+            </AppProvider>
+          </ThemeProvider>
+        </Web3Provider>
         <Analytics />
       </body>
     </html>

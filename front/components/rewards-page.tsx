@@ -1,17 +1,23 @@
 "use client"
 
-import { useApp, type Reward } from "@/lib/app-context"
+import { useApp } from "@/lib/app-context"
+import { useAccount } from "wagmi"
+import { useAzistBalance } from "@/hooks/contracts/useAzistToken"
+import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
+import { useConnectModal } from "@rainbow-me/rainbowkit"
+import { WalletButton } from "@/components/wallet-modal"
 import { Button } from "@/components/ui/button"
+import type { Reward } from "@/lib/types"
 import {
-  Zap, LogOut, Gift, Clock, CheckCircle2, XCircle, Lock,
+  Zap, Gift, Clock, CheckCircle2, XCircle, Lock,
   Menu, X, Copy, Coins
 } from "lucide-react"
 import { useState } from "react"
 
 function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { walletAddress, disconnectWallet, role } = useApp()
+  const { address } = useAccount()
+  const { isAdmin } = useIsAdmin(address)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const short = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -25,13 +31,10 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
           <button onClick={() => onNavigate("events")} className="text-sm text-muted-foreground hover:text-foreground">Eventos</button>
           <button onClick={() => onNavigate("rewards")} className="text-sm font-medium text-foreground">Recompensas</button>
           <button onClick={() => onNavigate("activity")} className="text-sm text-muted-foreground hover:text-foreground">Actividad</button>
-          {role === "admin" && <button onClick={() => onNavigate("admin")} className="text-sm text-primary">Admin</button>}
+          {isAdmin && <button onClick={() => onNavigate("admin")} className="text-sm text-primary">Admin</button>}
         </div>
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1.5">
-            <div className="h-2 w-2 rounded-full bg-primary" /><span className="font-mono text-xs text-foreground">{short}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={disconnectWallet}><LogOut className="h-4 w-4 text-muted-foreground" /></Button>
+          <WalletButton />
         </div>
         <button className="md:hidden text-foreground" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -95,8 +98,7 @@ function RewardCard({ reward, userAzist, onSelect }: { reward: Reward; userAzist
   )
 }
 
-function RewardModal({ reward, onClose, onRedeem }: { reward: Reward; onClose: () => void; onRedeem: () => void }) {
-  const { userStats } = useApp()
+function RewardModal({ reward, userBalance, onClose, onRedeem }: { reward: Reward; userBalance: number; onClose: () => void; onRedeem: () => void }) {
   const [redeemed, setRedeemed] = useState(false)
   const [code, setCode] = useState("")
   const [copied, setCopied] = useState(false)
@@ -151,12 +153,12 @@ function RewardModal({ reward, onClose, onRedeem }: { reward: Reward; onClose: (
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Tu balance</span>
-                <span className="font-semibold text-foreground">{userStats.azistBalance.toLocaleString()} AZIST</span>
+                <span className="font-semibold text-foreground">{userBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} AZIST</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Despues del canje</span>
-                <span className={`font-semibold ${userStats.azistBalance - reward.azistCost >= 0 ? "text-foreground" : "text-destructive"}`}>
-                  {(userStats.azistBalance - reward.azistCost).toLocaleString()} AZIST
+                <span className={`font-semibold ${userBalance - reward.azistCost >= 0 ? "text-foreground" : "text-destructive"}`}>
+                  {(userBalance - reward.azistCost).toLocaleString(undefined, { maximumFractionDigits: 2 })} AZIST
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
@@ -167,7 +169,7 @@ function RewardModal({ reward, onClose, onRedeem }: { reward: Reward; onClose: (
             <Button
               onClick={handleRedeem}
               className="mt-6 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={userStats.azistBalance < reward.azistCost}
+              disabled={userBalance < reward.azistCost}
             >
               Confirmar canje
             </Button>
@@ -179,12 +181,15 @@ function RewardModal({ reward, onClose, onRedeem }: { reward: Reward; onClose: (
 }
 
 export function RewardsPage() {
-  const { rewards, userStats, setCurrentPage, walletState, redeemReward } = useApp()
+  const { rewards, setCurrentPage, redeemReward } = useApp()
+  const { isConnected, address } = useAccount()
+  const { openConnectModal } = useConnectModal()
+  const { balance } = useAzistBalance(address)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
 
   return (
     <div className="min-h-screen bg-background">
-      {walletState === "connected" ? (
+      {isConnected ? (
         <Navbar onNavigate={setCurrentPage} />
       ) : (
         <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -193,6 +198,7 @@ export function RewardsPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary"><Zap className="h-4 w-4 text-primary-foreground" /></div>
               <span className="font-display text-lg font-bold text-foreground">PoP Rewards</span>
             </button>
+            <Button size="sm" onClick={() => openConnectModal?.()} className="bg-primary text-primary-foreground">Conectar Wallet</Button>
           </div>
         </nav>
       )}
@@ -203,10 +209,10 @@ export function RewardsPage() {
             <h1 className="font-display text-3xl font-bold text-foreground">Recompensas</h1>
             <p className="mt-2 text-muted-foreground">Canjea tus AZIST por recompensas exclusivas</p>
           </div>
-          {walletState === "connected" && (
+          {isConnected && (
             <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2">
               <Coins className="h-5 w-5 text-primary" />
-              <span className="font-display text-xl font-bold text-primary">{userStats.azistBalance.toLocaleString()}</span>
+              <span className="font-display text-xl font-bold text-primary">{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
               <span className="text-sm text-primary/70">AZIST disponibles</span>
             </div>
           )}
@@ -214,7 +220,7 @@ export function RewardsPage() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {rewards.map(reward => (
-            <RewardCard key={reward.id} reward={reward} userAzist={userStats.azistBalance} onSelect={setSelectedReward} />
+            <RewardCard key={reward.id} reward={reward} userAzist={balance} onSelect={setSelectedReward} />
           ))}
         </div>
 
@@ -232,9 +238,10 @@ export function RewardsPage() {
       {selectedReward && (
         <RewardModal
           reward={selectedReward}
+          userBalance={balance}
           onClose={() => setSelectedReward(null)}
           onRedeem={() => {
-            redeemReward(selectedReward.id)
+            redeemReward(selectedReward.id, balance)
           }}
         />
       )}

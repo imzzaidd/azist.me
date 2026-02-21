@@ -1,0 +1,92 @@
+export const levelSystemAbi = [
+  {
+    type: "constructor",
+    inputs: [{ name: "_roleManager", type: "address", internalType: "address" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "MAX_LEVEL",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8", internalType: "uint8" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "BASIS_POINTS",
+    inputs: [],
+    outputs: [{ name: "", type: "uint16", internalType: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "totalXp",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "level",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint8", internalType: "uint8" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getTotalXp",
+    inputs: [{ name: "participant", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getLevel",
+    inputs: [{ name: "participant", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint8", internalType: "uint8" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getLevelMultiplier",
+    inputs: [{ name: "participant", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint16", internalType: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getAreaXp",
+    inputs: [
+      { name: "participant", type: "address", internalType: "address" },
+      { name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "xpForLevel",
+    inputs: [{ name: "lvl", type: "uint8", internalType: "uint8" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "pure",
+  },
+  {
+    type: "event",
+    name: "XpAdded",
+    inputs: [
+      { name: "participant", type: "address", indexed: true },
+      { name: "area", type: "uint8", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "newTotal", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "LevelUp",
+    inputs: [
+      { name: "participant", type: "address", indexed: true },
+      { name: "oldLevel", type: "uint8", indexed: false },
+      { name: "newLevel", type: "uint8", indexed: false },
+    ],
+  },
+] as const;

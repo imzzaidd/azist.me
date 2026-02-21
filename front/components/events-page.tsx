@@ -1,16 +1,25 @@
 "use client"
 
-import { useApp, type EventItem, type EventStatus, type AttendanceStatus } from "@/lib/app-context"
+import { useApp } from "@/lib/app-context"
+import { useAccount } from "wagmi"
+import { useEpochs } from "@/hooks/contracts/useEpochs"
+import { useUserStats } from "@/hooks/contracts/useUserStats"
+import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
+import { useCheckIn, useCheckOut, usePresence } from "@/hooks/contracts/usePresenceRegistry"
+import { WalletButton } from "@/components/wallet-modal"
+import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import type { EventItem, EventStatus, AttendanceStatus } from "@/lib/types"
+import { PRESENCE_STATE_MAP } from "@/lib/types"
 import {
-  Zap, LogOut, Calendar, MapPin, Clock, Users, ArrowLeft, Trophy,
+  Zap, Calendar, MapPin, Clock, Users, ArrowLeft, Trophy,
   CheckCircle2, Timer, AlertCircle, Menu, X, Star, Radio, Tag,
   XCircle, Loader2, Coins
 } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 
-/* ─── Status Badge ─── */
+/* --- Status Badge --- */
 function StatusBadge({ status }: { status: EventStatus }) {
   const config: Record<EventStatus, { label: string; className: string }> = {
     upcoming: { label: "Proximo", className: "bg-secondary text-foreground" },
@@ -32,7 +41,7 @@ function StatusBadge({ status }: { status: EventStatus }) {
   )
 }
 
-/* ─── Attendance Badge ─── */
+/* --- Attendance Badge --- */
 function AttendanceBadge({ status }: { status: AttendanceStatus }) {
   if (status === "none") return null
   const config: Record<Exclude<AttendanceStatus, "none">, { label: string; className: string }> = {
@@ -45,11 +54,11 @@ function AttendanceBadge({ status }: { status: AttendanceStatus }) {
   return <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${className}`}>{label}</span>
 }
 
-/* ─── Navbar ─── */
+/* --- Navbar --- */
 function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { walletAddress, disconnectWallet, role } = useApp()
+  const { address } = useAccount()
+  const { isAdmin } = useIsAdmin(address)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const short = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -63,13 +72,10 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
           <button onClick={() => onNavigate("events")} className="text-sm font-medium text-foreground">Eventos</button>
           <button onClick={() => onNavigate("rewards")} className="text-sm text-muted-foreground hover:text-foreground">Recompensas</button>
           <button onClick={() => onNavigate("activity")} className="text-sm text-muted-foreground hover:text-foreground">Actividad</button>
-          {role === "admin" && <button onClick={() => onNavigate("admin")} className="text-sm text-primary">Admin</button>}
+          {isAdmin && <button onClick={() => onNavigate("admin")} className="text-sm text-primary">Admin</button>}
         </div>
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1.5">
-            <div className="h-2 w-2 rounded-full bg-primary" /><span className="font-mono text-xs text-foreground">{short}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={disconnectWallet}><LogOut className="h-4 w-4 text-muted-foreground" /></Button>
+          <WalletButton />
         </div>
         <button className="md:hidden text-foreground" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -88,10 +94,19 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
   )
 }
 
-/* ─── Event Card ─── */
+/* --- Event Card --- */
 function EventCard({ event, onSelect }: { event: EventItem; onSelect: (e: EventItem) => void }) {
-  const { getEstimatedReward, walletState } = useApp()
-  const reward = walletState === "connected" ? getEstimatedReward(event) : null
+  const { isConnected, address } = useAccount()
+  const { stats } = useUserStats(address)
+
+  const reward = useMemo(() => {
+    if (!isConnected) return null
+    const base = event.baseReward
+    const catMul = event.categoryMultiplier
+    const min = Math.round(base * catMul)
+    const max = Math.round(base * catMul * stats.levelMultiplier * stats.streakMultiplier)
+    return { min, max }
+  }, [isConnected, event.baseReward, event.categoryMultiplier, stats.levelMultiplier, stats.streakMultiplier])
 
   return (
     <div className="group overflow-hidden rounded-2xl border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
@@ -126,11 +141,10 @@ function EventCard({ event, onSelect }: { event: EventItem; onSelect: (e: EventI
           </div>
           {event.attendees > 0 && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Users className="h-3.5 w-3.5" /> {event.attendees} asistentes
+              <Users className="h-3.5 w-3.5" /> {event.attendees}{event.maxParticipants > 0 ? `/${event.maxParticipants}` : ""} asistentes
             </div>
           )}
         </div>
-        {/* Reward range */}
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/5 px-3 py-2">
           <Coins className="h-4 w-4 text-primary" />
           {reward ? (
@@ -155,11 +169,30 @@ function EventCard({ event, onSelect }: { event: EventItem; onSelect: (e: EventI
   )
 }
 
-/* ─── Event Detail ─── */
-function EventDetail({ event, onBack, onCheckin }: { event: EventItem; onBack: () => void; onCheckin: () => void }) {
-  const { getEstimatedReward, getRewardExplanation, walletState } = useApp()
-  const reward = walletState === "connected" ? getEstimatedReward(event) : null
+/* --- Event Detail --- */
+function EventDetail({ event, onBack, onCheckin, isCheckinPending }: {
+  event: EventItem;
+  onBack: () => void;
+  onCheckin: () => void;
+  isCheckinPending: boolean;
+}) {
+  const { isConnected, address } = useAccount()
+  const { stats } = useUserStats(address)
+
+  const reward = useMemo(() => {
+    if (!isConnected) return null
+    const base = event.baseReward
+    const catMul = event.categoryMultiplier
+    const min = Math.round(base * catMul)
+    const max = Math.round(base * catMul * stats.levelMultiplier * stats.streakMultiplier)
+    return { min, max }
+  }, [isConnected, event.baseReward, event.categoryMultiplier, stats.levelMultiplier, stats.streakMultiplier])
+
   const canCheckin = event.status === "live" && (!event.attendanceStatus || event.attendanceStatus === "none")
+
+  const rewardExplanation = isConnected
+    ? `Tu nivel ${stats.level} te da un bonus de x${stats.levelMultiplier.toFixed(2)} y tu racha de ${stats.streak} dias te da un bonus adicional de x${stats.streakMultiplier.toFixed(2)}. La categoria del evento tambien afecta tu recompensa final.`
+    : ""
 
   return (
     <div className="animate-slide-up">
@@ -234,16 +267,13 @@ function EventDetail({ event, onBack, onCheckin }: { event: EventItem; onBack: (
             </div>
           </div>
 
-          {/* Reward explanation */}
-          {walletState === "connected" && (
+          {isConnected && rewardExplanation && (
             <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Star className="h-4 w-4 text-primary" />
                 <p className="text-sm font-semibold text-foreground">Como se calcula tu recompensa</p>
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {getRewardExplanation()}
-              </p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{rewardExplanation}</p>
             </div>
           )}
 
@@ -252,9 +282,19 @@ function EventDetail({ event, onBack, onCheckin }: { event: EventItem; onBack: (
               size="lg"
               className="mt-8 w-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 md:w-auto"
               onClick={onCheckin}
+              disabled={isCheckinPending}
             >
-              <Radio className="mr-2 h-5 w-5" />
-              Registrar llegada
+              {isCheckinPending ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <Radio className="mr-2 h-5 w-5" />
+                  Registrar llegada
+                </>
+              )}
             </Button>
           ) : event.status === "upcoming" ? (
             <div className="mt-8 rounded-xl bg-secondary/50 p-4 text-center">
@@ -267,49 +307,45 @@ function EventDetail({ event, onBack, onCheckin }: { event: EventItem; onBack: (
   )
 }
 
-/* ─── Check-in: Waiting for validation ─── */
-function WaitingValidation({ event, onComplete }: { event: EventItem; onComplete: () => void }) {
-  const { confirmAttendance, rejectAttendance } = useApp()
-  const [phase, setPhase] = useState<"validating" | "confirmed" | "rejected">("validating")
+/* --- Attendance Tracker (after check-in) --- */
+function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete: () => void }) {
+  const { address } = useAccount()
+  const { checkOut, isPending: isCheckoutPending } = useCheckOut()
+  const epochId = BigInt(event.id)
+  const { presence, refetch: refetchPresence } = usePresence(epochId, address)
 
+  // Poll presence status every 10 seconds
   useEffect(() => {
-    // Simulate validation: confirm after 3 seconds (in real app this comes from backend)
-    const timer = setTimeout(() => {
-      confirmAttendance(event.id)
-      setPhase("confirmed")
-    }, 3000)
-    return () => clearTimeout(timer)
-  }, [event.id, confirmAttendance])
+    const interval = setInterval(() => {
+      refetchPresence()
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [refetchPresence])
 
-  if (phase === "validating") {
+  // Derive attendance status from on-chain presence
+  const attendanceStatus: AttendanceStatus = useMemo(() => {
+    if (!presence) return "arrived"
+    const state = typeof presence === "object" && "state" in presence ? Number((presence as { state: unknown }).state) : 0
+    return PRESENCE_STATE_MAP[state] || "arrived"
+  }, [presence])
+
+  if (attendanceStatus === "confirmed") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center animate-slide-up">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-12 w-12 text-success" />
           </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Verificando asistencia...</h2>
-          <p className="mt-2 max-w-sm text-muted-foreground">
-            Estamos confirmando tu presencia en el evento. Esto puede tomar un momento.
-          </p>
-          <div className="mt-6 mx-auto w-48">
-            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-              <div className="h-full animate-pulse rounded-full bg-primary" style={{ width: "60%" }} />
-            </div>
-          </div>
-          {/* Simulated rejection button for demo */}
-          <button
-            onClick={() => { rejectAttendance(event.id); setPhase("rejected") }}
-            className="mt-8 text-xs text-muted-foreground hover:text-destructive transition-colors"
-          >
-            (Demo: simular rechazo)
-          </button>
+          <h2 className="font-display text-2xl font-bold text-foreground">Asistencia confirmada</h2>
+          <p className="mt-2 text-muted-foreground">{event.title}</p>
+          <p className="mt-4 text-sm text-muted-foreground">Tu recompensa sera distribuida cuando el evento se finalice.</p>
+          <Button onClick={onComplete} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">Continuar</Button>
         </div>
       </div>
     )
   }
 
-  if (phase === "rejected") {
+  if (attendanceStatus === "rejected") {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center animate-slide-up">
@@ -326,138 +362,11 @@ function WaitingValidation({ event, onComplete }: { event: EventItem; onComplete
     )
   }
 
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center animate-slide-up">
-        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-success/10">
-          <CheckCircle2 className="h-12 w-12 text-success" />
-        </div>
-        <h2 className="font-display text-2xl font-bold text-foreground">Asistencia confirmada</h2>
-        <p className="mt-2 text-muted-foreground">{event.title}</p>
-        <Button onClick={onComplete} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">
-          Continuar
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Check-in: Prolonged attendance tracking ─── */
-function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete: () => void }) {
-  const { arriveAtEvent, leaveEvent, confirmAttendance } = useApp()
-  const totalSeconds = (event.minAttendance) * 1 // 1 sec per "minute" for demo
-  const [elapsed, setElapsed] = useState(0)
-  const [phase, setPhase] = useState<"arriving" | "active" | "validating" | "confirmed" | "left-early">("arriving")
-
-  const progress = Math.min((elapsed / totalSeconds) * 100, 100)
-  const remaining = Math.max(totalSeconds - elapsed, 0)
-
-  useEffect(() => {
-    // Simulate arrival validation
-    const arrivalTimer = setTimeout(() => {
-      arriveAtEvent(event.id)
-      setPhase("active")
-    }, 1500)
-    return () => clearTimeout(arrivalTimer)
-  }, [event.id, arriveAtEvent])
-
-  useEffect(() => {
-    if (phase !== "active") return
-    const timer = setInterval(() => {
-      setElapsed(prev => {
-        const next = prev + 1
-        if (next >= totalSeconds) {
-          clearInterval(timer)
-          setPhase("validating")
-          setTimeout(() => {
-            confirmAttendance(event.id)
-            setPhase("confirmed")
-          }, 2000)
-        }
-        return next
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [phase, totalSeconds, event.id, confirmAttendance])
-
-  const handleLeaveEarly = useCallback(() => {
-    leaveEvent(event.id)
-    setPhase("left-early")
-  }, [event.id, leaveEvent])
-
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60)
-    const sec = s % 60
-    return `${m}:${sec.toString().padStart(2, "0")}`
+  // Active attendance - waiting for check-out or validator confirmation
+  const handleCheckOut = () => {
+    checkOut(epochId)
   }
 
-  if (phase === "arriving") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center animate-slide-up">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Registrando llegada...</h2>
-          <p className="mt-2 text-muted-foreground">Confirmando tu presencia en el evento</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "validating") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center animate-slide-up">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Verificando asistencia...</h2>
-          <p className="mt-2 text-muted-foreground">Calculando tu recompensa final</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "confirmed") {
-    const { getEstimatedReward } = useApp()
-    const reward = getEstimatedReward(event)
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center animate-slide-up">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-success/10">
-            <CheckCircle2 className="h-12 w-12 text-success" />
-          </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Asistencia completada</h2>
-          <p className="mt-2 text-muted-foreground">{event.title}</p>
-          <div className="mt-6 animate-count-up">
-            <span className="font-display text-5xl font-bold text-primary">+{reward.max}</span>
-            <p className="mt-1 text-sm text-primary/70">AZIST ganados</p>
-          </div>
-          <Button onClick={onComplete} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">Continuar</Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "left-early") {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center animate-slide-up">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="h-12 w-12 text-destructive" />
-          </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">Salida anticipada</h2>
-          <p className="mt-2 max-w-sm text-muted-foreground">
-            Saliste antes de completar el tiempo minimo de {event.minAttendance} minutos. No se otorgaron recompensas.
-          </p>
-          <Button onClick={onComplete} variant="outline" className="mt-8 border-border text-foreground">Volver a eventos</Button>
-        </div>
-      </div>
-    )
-  }
-
-  // phase === "active"
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-md text-center animate-slide-up">
@@ -469,28 +378,12 @@ function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete
           Presente
         </div>
         <h2 className="font-display text-xl font-bold text-foreground">{event.title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Seguimiento de asistencia activo</p>
+        <p className="mt-1 text-sm text-muted-foreground">Tu asistencia esta siendo registrada en la blockchain</p>
 
-        {/* Circular progress */}
-        <div className="relative mx-auto mt-8 h-48 w-48">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="44" fill="none" className="stroke-secondary" strokeWidth="6" />
-            <circle
-              cx="50" cy="50" r="44" fill="none" className="stroke-primary transition-all duration-1000"
-              strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={`${progress * 2.76} ${276 - progress * 2.76}`}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-display text-3xl font-bold tabular-nums text-foreground">{formatTime(remaining)}</span>
-            <span className="text-xs text-muted-foreground">restante</span>
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-3 rounded-xl border border-border/50 bg-secondary/30 p-4">
+        <div className="mt-8 space-y-3 rounded-xl border border-border/50 bg-secondary/30 p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Duracion total del evento</span>
-            <span className="font-medium text-foreground">{event.duration} min</span>
+            <span className="text-muted-foreground">Estado</span>
+            <span className="font-medium text-primary">Registrado en cadena</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Asistencia minima</span>
@@ -500,45 +393,60 @@ function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete
             <span className="text-muted-foreground">Duracion maxima recompensable</span>
             <span className="font-medium text-foreground">{event.maxRewardDuration} min</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Progreso</span>
-            <span className="font-medium text-primary">{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="h-1.5 bg-secondary" />
         </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Un validador confirmara tu asistencia. Cuando termines, registra tu salida.
+        </p>
 
         <Button
           variant="outline"
-          onClick={handleLeaveEarly}
+          onClick={handleCheckOut}
+          disabled={isCheckoutPending}
           className="mt-6 border-destructive/30 text-destructive hover:bg-destructive/10"
         >
-          Registrar salida
+          {isCheckoutPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Registrando salida...
+            </>
+          ) : (
+            "Registrar salida"
+          )}
         </Button>
       </div>
     </div>
   )
 }
 
-/* ─── Events Page ─── */
+/* --- Events Page --- */
 export function EventsPage() {
-  const { events, setCurrentPage, walletState } = useApp()
+  const { setCurrentPage } = useApp()
+  const { isConnected, address } = useAccount()
+  const { openConnectModal } = useConnectModal()
+  const { events, isLoading } = useEpochs()
+  const { checkIn, isPending: isCheckinPending } = useCheckIn()
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
   const [checkinEvent, setCheckinEvent] = useState<EventItem | null>(null)
   const [filter, setFilter] = useState<"all" | EventStatus>("all")
 
   const filtered = filter === "all" ? events : events.filter(e => e.status === filter)
 
+  const handleCheckin = useCallback((event: EventItem) => {
+    if (!isConnected) {
+      openConnectModal?.()
+      return
+    }
+    checkIn(BigInt(event.id))
+    setCheckinEvent(event)
+  }, [isConnected, openConnectModal, checkIn])
+
   if (checkinEvent) {
-    const isQuickEvent = checkinEvent.minAttendance <= 60
     return (
       <div className="min-h-screen bg-background">
         <Navbar onNavigate={(p) => { setCheckinEvent(null); setSelectedEvent(null); setCurrentPage(p) }} />
         <main className="mx-auto max-w-7xl px-4 py-6">
-          {isQuickEvent ? (
-            <WaitingValidation event={checkinEvent} onComplete={() => { setCheckinEvent(null); setSelectedEvent(null) }} />
-          ) : (
-            <AttendanceTracker event={checkinEvent} onComplete={() => { setCheckinEvent(null); setSelectedEvent(null) }} />
-          )}
+          <AttendanceTracker event={checkinEvent} onComplete={() => { setCheckinEvent(null); setSelectedEvent(null) }} />
         </main>
       </div>
     )
@@ -546,7 +454,7 @@ export function EventsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {walletState === "connected" ? (
+      {isConnected ? (
         <Navbar onNavigate={setCurrentPage} />
       ) : (
         <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -555,14 +463,19 @@ export function EventsPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary"><Zap className="h-4 w-4 text-primary-foreground" /></div>
               <span className="font-display text-lg font-bold text-foreground">PoP Rewards</span>
             </button>
-            <Button size="sm" onClick={() => setCurrentPage("landing")} className="bg-primary text-primary-foreground">Conectar Wallet</Button>
+            <Button size="sm" onClick={() => openConnectModal?.()} className="bg-primary text-primary-foreground">Conectar Wallet</Button>
           </div>
         </nav>
       )}
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">
         {selectedEvent ? (
-          <EventDetail event={selectedEvent} onBack={() => setSelectedEvent(null)} onCheckin={() => setCheckinEvent(selectedEvent)} />
+          <EventDetail
+            event={selectedEvent}
+            onBack={() => setSelectedEvent(null)}
+            onCheckin={() => handleCheckin(selectedEvent)}
+            isCheckinPending={isCheckinPending}
+          />
         ) : (
           <>
             <div className="mb-8">
@@ -588,13 +501,22 @@ export function EventsPage() {
               ))}
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map(event => (
-                <EventCard key={event.id} event={event} onSelect={setSelectedEvent} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <p className="text-muted-foreground">Cargando eventos...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map(event => (
+                  <EventCard key={event.id} event={event} onSelect={setSelectedEvent} />
+                ))}
+              </div>
+            )}
 
-            {filtered.length === 0 && (
+            {!isLoading && filtered.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
                   <Calendar className="h-8 w-8 text-muted-foreground" />

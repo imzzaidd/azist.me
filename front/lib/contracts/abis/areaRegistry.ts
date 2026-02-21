@@ -1,0 +1,117 @@
+export const areaRegistryAbi = [
+  {
+    type: "constructor",
+    inputs: [{ name: "_roleManager", type: "address", internalType: "address" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "BASIS_POINTS",
+    inputs: [],
+    outputs: [{ name: "", type: "uint16", internalType: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "AREA_COUNT",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8", internalType: "uint8" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getAreaConfig",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct AreaRegistry.AreaConfig",
+        components: [
+          { name: "rewardMultiplier", type: "uint16", internalType: "uint16" },
+          { name: "minStaySeconds", type: "uint64", internalType: "uint64" },
+          { name: "maxRewardDuration", type: "uint64", internalType: "uint64" },
+          { name: "xpPerMinute", type: "uint256", internalType: "uint256" },
+          { name: "active", type: "bool", internalType: "bool" },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "isAreaActive",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getRewardMultiplier",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [{ name: "", type: "uint16", internalType: "uint16" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getMinStay",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [{ name: "", type: "uint64", internalType: "uint64" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getMaxDuration",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [{ name: "", type: "uint64", internalType: "uint64" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getXpPerMinute",
+    inputs: [{ name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "updateAreaConfig",
+    inputs: [
+      { name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" },
+      { name: "rewardMultiplier", type: "uint16", internalType: "uint16" },
+      { name: "minStaySeconds", type: "uint64", internalType: "uint64" },
+      { name: "maxRewardDuration", type: "uint64", internalType: "uint64" },
+      { name: "xpPerMinute", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "toggleArea",
+    inputs: [
+      { name: "area", type: "uint8", internalType: "enum AreaRegistry.AreaType" },
+      { name: "active", type: "bool", internalType: "bool" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "event",
+    name: "AreaConfigUpdated",
+    inputs: [
+      { name: "area", type: "uint8", indexed: true },
+      { name: "rewardMultiplier", type: "uint16", indexed: false },
+      { name: "minStay", type: "uint64", indexed: false },
+      { name: "maxDuration", type: "uint64", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "AreaToggled",
+    inputs: [
+      { name: "area", type: "uint8", indexed: true },
+      { name: "active", type: "bool", indexed: false },
+    ],
+  },
+] as const;

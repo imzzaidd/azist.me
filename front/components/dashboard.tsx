@@ -1,18 +1,23 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
+import { useAccount, useDisconnect } from "wagmi"
+import { useUserStats } from "@/hooks/contracts/useUserStats"
+import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
+import { useActivityLogs } from "@/hooks/contracts/useActivityLogs"
+import { WalletButton } from "@/components/wallet-modal"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
-  Zap, LogOut, Trophy, Flame, Target, Clock, ChevronRight,
+  Zap, Trophy, Flame, Target, Clock, ChevronRight,
   TrendingUp, Star, Menu, X, Coins, Sparkles, ArrowUpRight
 } from "lucide-react"
 import { useState } from "react"
 
 function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { walletAddress, disconnectWallet, role } = useApp()
+  const { address } = useAccount()
+  const { isAdmin } = useIsAdmin(address)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const short = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ""
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -30,18 +35,12 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
           <button onClick={() => onNavigate("events")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Eventos</button>
           <button onClick={() => onNavigate("rewards")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Recompensas</button>
           <button onClick={() => onNavigate("activity")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Actividad</button>
-          {role === "admin" && (
+          {isAdmin && (
             <button onClick={() => onNavigate("admin")} className="text-sm text-primary transition-colors hover:text-primary/80">Admin</button>
           )}
         </div>
         <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1.5">
-            <div className="h-2 w-2 rounded-full bg-primary" />
-            <span className="font-mono text-xs text-foreground">{short}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={disconnectWallet} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <WalletButton />
         </div>
         <button className="md:hidden text-foreground" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -59,15 +58,11 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
                 {page === "dashboard" ? "Dashboard" : page === "events" ? "Eventos" : page === "rewards" ? "Recompensas" : "Actividad"}
               </button>
             ))}
-            {role === "admin" && (
+            {isAdmin && (
               <button onClick={() => { onNavigate("admin"); setMobileMenuOpen(false) }} className="rounded-lg px-3 py-2 text-left text-sm text-primary transition-colors hover:bg-secondary">Admin</button>
             )}
-            <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary" />
-                <span className="font-mono text-xs text-muted-foreground">{short}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={disconnectWallet} className="text-muted-foreground"><LogOut className="h-4 w-4" /></Button>
+            <div className="mt-2 border-t border-border pt-3">
+              <WalletButton />
             </div>
           </div>
         </div>
@@ -77,10 +72,30 @@ function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
 }
 
 export function Dashboard() {
-  const { userStats, activities, objectives, setCurrentPage, role, setRole } = useApp()
+  const { setCurrentPage, objectives } = useApp()
+  const { address } = useAccount()
+  const { stats: userStats, isLoading } = useUserStats(address)
+  const { isAdmin } = useIsAdmin(address)
+  const { activities } = useActivityLogs(address)
   const { azistBalance, xp, level, xpToNextLevel, levelMultiplier, streak, streakMultiplier } = userStats
-  const xpProgress = (xp / xpToNextLevel) * 100
+  const xpProgress = xpToNextLevel > 0 ? (xp / xpToNextLevel) * 100 : 0
   const remainingXp = xpToNextLevel - xp
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar onNavigate={setCurrentPage} />
+        <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="text-muted-foreground">Cargando datos...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,14 +120,10 @@ export function Dashboard() {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setRole(role === "admin" ? "user" : "admin")} className="border-border text-muted-foreground text-xs">
-            {role === "admin" ? "Vista usuario" : "Vista admin"}
-          </Button>
         </div>
 
         {/* AZIST + XP Cards */}
         <div className="mb-8 grid gap-4 md:grid-cols-2">
-          {/* AZIST Balance Card */}
           <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
             <div className="relative p-6">
               <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-primary/5" />
@@ -124,14 +135,13 @@ export function Dashboard() {
                   <p className="text-sm font-medium text-muted-foreground">Balance AZIST</p>
                 </div>
                 <p className="mt-3 font-display text-4xl font-bold tabular-nums text-foreground md:text-5xl">
-                  {azistBalance.toLocaleString()}
+                  {azistBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">Tokens disponibles para canjear</p>
               </div>
             </div>
           </div>
 
-          {/* XP + Level Card */}
           <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
             <div className="relative p-6">
               <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-primary/5" />
@@ -192,9 +202,9 @@ export function Dashboard() {
               <span className="text-xs font-medium text-muted-foreground">Eventos asistidos</span>
             </div>
             <p className="mt-2 font-display text-2xl font-bold text-foreground">
-              {activities.filter(a => a.type === "event" && a.status === "confirmed").length}
+              {activities.filter(a => a.type === "reward").length}
             </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Total confirmados</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Total recompensados</p>
           </div>
         </div>
 
@@ -208,38 +218,42 @@ export function Dashboard() {
               </button>
             </div>
             <div className="space-y-3">
-              {activities.slice(0, 4).map((a, i) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded-xl border border-border/30 bg-secondary/30 p-3 transition-colors hover:bg-secondary/50"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${a.azist > 0 ? "bg-primary/10 text-primary" : a.azist < 0 ? "bg-muted text-muted-foreground" : a.status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}`}>
-                      {a.azist > 0 ? <TrendingUp className="h-4 w-4" /> : a.type === "redemption" ? <Trophy className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{a.eventName}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-xs text-muted-foreground">{a.date}</p>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${a.status === "confirmed" ? "bg-primary/10 text-primary" : a.status === "pending" ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"}`}>
-                          {a.status === "confirmed" ? "Confirmado" : a.status === "pending" ? "Pendiente" : "Rechazado"}
-                        </span>
+              {activities.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">No hay actividad registrada aun</p>
+              ) : (
+                activities.slice(0, 4).map((a, i) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-xl border border-border/30 bg-secondary/30 p-3 transition-colors hover:bg-secondary/50"
+                    style={{ animationDelay: `${i * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${a.azist > 0 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {a.azist > 0 ? <TrendingUp className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{a.eventName}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted-foreground">{a.date}</p>
+                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                            {a.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      {a.azist !== 0 && (
+                        <span className={`font-mono text-sm font-semibold ${a.azist > 0 ? "text-primary" : "text-muted-foreground"}`}>
+                          {a.azist > 0 ? "+" : ""}{a.azist.toFixed(2)} AZIST
+                        </span>
+                      )}
+                      {a.xp > 0 && (
+                        <p className="text-[10px] text-muted-foreground">+{a.xp} XP</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    {a.azist !== 0 && (
-                      <span className={`font-mono text-sm font-semibold ${a.azist > 0 ? "text-primary" : "text-muted-foreground"}`}>
-                        {a.azist > 0 ? "+" : ""}{a.azist} AZIST
-                      </span>
-                    )}
-                    {a.xp > 0 && (
-                      <p className="text-[10px] text-muted-foreground">+{a.xp} XP</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -265,7 +279,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Streak */}
             <div className="rounded-2xl border border-border/50 bg-card p-6">
               <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Racha activa</h2>
               <div className="flex items-center gap-3">
@@ -300,7 +313,7 @@ export function Dashboard() {
             { label: "Recompensas", icon: Trophy, page: "rewards" },
             { label: "Actividad", icon: TrendingUp, page: "activity" },
             { label: "Admin", icon: Target, page: "admin", adminOnly: true },
-          ].filter(a => !a.adminOnly || role === "admin").map(action => (
+          ].filter(a => !a.adminOnly || isAdmin).map(action => (
             <button
               key={action.label}
               onClick={() => setCurrentPage(action.page)}

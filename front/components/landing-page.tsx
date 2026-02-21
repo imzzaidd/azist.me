@@ -1,6 +1,7 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
+import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
 import { MapPin, Shield, Trophy, Users, Zap, ArrowRight } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -27,12 +28,17 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 }
 
 export function LandingPage() {
-  const { setCurrentPage, connectWallet } = useApp()
+  const { setCurrentPage } = useApp()
+  const { openConnectModal } = useConnectModal()
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  const handleConnect = () => {
+    openConnectModal?.()
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +56,7 @@ export function LandingPage() {
             <button onClick={() => setCurrentPage("rewards")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Recompensas</button>
             <button onClick={() => setCurrentPage("activity")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Actividad</button>
           </div>
-          <Button onClick={connectWallet} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={handleConnect} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
             Conectar Wallet
           </Button>
         </div>
@@ -79,7 +85,7 @@ export function LandingPage() {
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button
                 size="lg"
-                onClick={connectWallet}
+                onClick={handleConnect}
                 className="w-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 sm:w-auto"
               >
                 Activar recompensas
@@ -157,7 +163,7 @@ export function LandingPage() {
           </p>
           <Button
             size="lg"
-            onClick={connectWallet}
+            onClick={handleConnect}
             className="mt-8 bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90"
           >
             Comenzar ahora
