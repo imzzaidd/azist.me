@@ -129,8 +129,8 @@ contract FullFlowTest is Test {
         assertEq(token.balanceOf(bob), 360 ether);
 
         // 12. Verify XP was added (240 min * 15 xp/min = 3600 XP)
-        assertEq(levelSystem.getTotalXP(alice), 3600);
-        assertEq(levelSystem.getTotalXP(bob), 3600);
+        assertEq(levelSystem.getTotalXp(alice), 3600);
+        assertEq(levelSystem.getTotalXp(bob), 3600);
 
         // 13. Verify levels (3600 XP = level 5, since xpForLevel(6) = 3600, so level 6)
         assertEq(levelSystem.getLevel(alice), 6); // sqrt(3600/100) = 6
@@ -225,9 +225,9 @@ contract FullFlowTest is Test {
         assertTrue(totalBalance > 0);
 
         // XP: env = 60*15=900, edu = 60*10=600 => total = 1500
-        assertEq(levelSystem.getTotalXP(alice), 1500);
-        assertEq(levelSystem.getAreaXP(alice, AreaRegistry.AreaType.Environmental), 900);
-        assertEq(levelSystem.getAreaXP(alice, AreaRegistry.AreaType.Education), 600);
+        assertEq(levelSystem.getTotalXp(alice), 1500);
+        assertEq(levelSystem.getAreaXp(alice, AreaRegistry.AreaType.Environmental), 900);
+        assertEq(levelSystem.getAreaXp(alice, AreaRegistry.AreaType.Education), 600);
 
         // Total check-ins = 2
         assertEq(presenceRegistry.totalCheckIns(alice), 2);

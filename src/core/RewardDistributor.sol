@@ -99,7 +99,7 @@ contract RewardDistributor {
         uint256 reward = calculateReward(epochId, participant);
 
         // Update gamification state
-        _addXP(epochId, participant);
+        _addXp(epochId, participant);
         STREAK_TRACKER.recordParticipation(participant);
 
         // Mint reward
@@ -127,7 +127,7 @@ contract RewardDistributor {
         }
     }
 
-    function _addXP(
+    function _addXp(
         uint256 epochId,
         address participant
     ) internal {
@@ -139,7 +139,7 @@ contract RewardDistributor {
         uint256 xpEarned = durationMinutes * xpPerMinute;
 
         if (xpEarned > 0) {
-            LEVEL_SYSTEM.addXP(participant, area, xpEarned);
+            LEVEL_SYSTEM.addXp(participant, area, xpEarned);
         }
     }
 
