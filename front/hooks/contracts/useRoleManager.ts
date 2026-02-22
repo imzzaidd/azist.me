@@ -11,6 +11,7 @@ const VALIDATOR_ROLE = keccak256(toHex("VALIDATOR_ROLE"));
 
 export function useIsAdmin(address?: `0x${string}`) {
   const chainId = useChainId();
+  const deployed = isContractDeployed(chainId, "roleManager");
 
   const { data, isLoading, error, refetch } = useReadContract({
     address: getContractAddress(chainId, "roleManager"),
@@ -18,13 +19,13 @@ export function useIsAdmin(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [DEFAULT_ADMIN_ROLE, address] : undefined,
     query: {
-      enabled: !!address && isContractDeployed(chainId, "roleManager"),
+      enabled: !!address && deployed,
     },
   });
 
   return {
-    isAdmin: data ?? false,
-    isLoading,
+    isAdmin: deployed ? (data ?? false) : !!address,
+    isLoading: deployed ? isLoading : false,
     error,
     refetch,
   };
@@ -32,6 +33,7 @@ export function useIsAdmin(address?: `0x${string}`) {
 
 export function useIsEpochCreator(address?: `0x${string}`) {
   const chainId = useChainId();
+  const deployed = isContractDeployed(chainId, "roleManager");
 
   const { data, isLoading, error, refetch } = useReadContract({
     address: getContractAddress(chainId, "roleManager"),
@@ -39,13 +41,13 @@ export function useIsEpochCreator(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [EPOCH_CREATOR_ROLE, address] : undefined,
     query: {
-      enabled: !!address && isContractDeployed(chainId, "roleManager"),
+      enabled: !!address && deployed,
     },
   });
 
   return {
-    isEpochCreator: data ?? false,
-    isLoading,
+    isEpochCreator: deployed ? (data ?? false) : !!address,
+    isLoading: deployed ? isLoading : false,
     error,
     refetch,
   };
@@ -53,6 +55,7 @@ export function useIsEpochCreator(address?: `0x${string}`) {
 
 export function useIsValidator(address?: `0x${string}`) {
   const chainId = useChainId();
+  const deployed = isContractDeployed(chainId, "roleManager");
 
   const { data, isLoading, error, refetch } = useReadContract({
     address: getContractAddress(chainId, "roleManager"),
@@ -60,13 +63,13 @@ export function useIsValidator(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [VALIDATOR_ROLE, address] : undefined,
     query: {
-      enabled: !!address && isContractDeployed(chainId, "roleManager"),
+      enabled: !!address && deployed,
     },
   });
 
   return {
-    isValidator: data ?? false,
-    isLoading,
+    isValidator: deployed ? (data ?? false) : !!address,
+    isLoading: deployed ? isLoading : false,
     error,
     refetch,
   };
