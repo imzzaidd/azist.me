@@ -2,7 +2,7 @@
 
 import { useReadContract, useChainId } from "wagmi";
 import { formatEther } from "viem";
-import { azistTokenAbi, getContractAddress } from "@/lib/contracts";
+import { azistTokenAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 
 export function useAzistBalance(address?: `0x${string}`) {
   const chainId = useChainId();
@@ -13,7 +13,7 @@ export function useAzistBalance(address?: `0x${string}`) {
     functionName: "balanceOf",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "azistToken"),
     },
   });
 

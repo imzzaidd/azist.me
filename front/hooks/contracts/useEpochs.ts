@@ -6,6 +6,7 @@ import {
   epochManagerAbi,
   areaRegistryAbi,
   getContractAddress,
+  isContractDeployed,
 } from "@/lib/contracts";
 import {
   AREA_NAMES,
@@ -17,11 +18,14 @@ import {
 export function useEpochs() {
   const chainId = useChainId();
 
+  const deployed = isContractDeployed(chainId, "epochManager");
+
   // First, get the total count of epochs
   const { data: epochCount, isLoading: isLoadingCount } = useReadContract({
     address: getContractAddress(chainId, "epochManager"),
     abi: epochManagerAbi,
     functionName: "epochCount",
+    query: { enabled: deployed },
   });
 
   // Build multicall contracts array for all epochs
@@ -136,6 +140,7 @@ export function useEpochs() {
           description: `Evento en ${epoch.location}`,
           category: categoryName,
           categoryMultiplier,
+          startTimestamp: Number(epoch.startTime),
           date: startDate.toLocaleDateString("es-ES", {
             year: "numeric",
             month: "long",

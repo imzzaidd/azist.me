@@ -2,7 +2,7 @@
 
 import { useReadContract, useChainId } from "wagmi";
 import { formatEther } from "viem";
-import { rewardDistributorAbi, getContractAddress } from "@/lib/contracts";
+import { rewardDistributorAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 import { useContractTransaction } from "../useContractTransaction";
 
 // READ HOOKS
@@ -16,7 +16,7 @@ export function useCalculateReward(epochId: bigint, address?: `0x${string}`) {
     functionName: "calculateReward",
     args: [epochId, address!],
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "rewardDistributor"),
     },
   });
 

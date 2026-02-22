@@ -1,78 +1,20 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
-import { useAccount, useDisconnect } from "wagmi"
+import { useAccount } from "wagmi"
 import { useUserStats } from "@/hooks/contracts/useUserStats"
 import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
 import { useActivityLogs } from "@/hooks/contracts/useActivityLogs"
-import { WalletButton } from "@/components/wallet-modal"
-import { Button } from "@/components/ui/button"
+import { Navbar } from "@/components/navbar"
 import { Progress } from "@/components/ui/progress"
 import {
-  Zap, Trophy, Flame, Target, Clock, ChevronRight,
-  TrendingUp, Star, Menu, X, Coins, Sparkles, ArrowUpRight
+  Trophy, Flame, Clock,
+  TrendingUp, Star, Coins, Sparkles, ArrowUpRight,
+  Plus, CalendarCheck, BarChart3, Target
 } from "lucide-react"
-import { useState } from "react"
-
-function Navbar({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const { address } = useAccount()
-  const { isAdmin } = useIsAdmin(address)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate("dashboard")} className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-bold text-foreground">PoP</span>
-          </button>
-        </div>
-        <div className="hidden items-center gap-6 md:flex">
-          <button onClick={() => onNavigate("dashboard")} className="text-sm font-medium text-foreground">Dashboard</button>
-          <button onClick={() => onNavigate("events")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Eventos</button>
-          <button onClick={() => onNavigate("rewards")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Recompensas</button>
-          <button onClick={() => onNavigate("activity")} className="text-sm text-muted-foreground transition-colors hover:text-foreground">Actividad</button>
-          {isAdmin && (
-            <button onClick={() => onNavigate("admin")} className="text-sm text-primary transition-colors hover:text-primary/80">Admin</button>
-          )}
-        </div>
-        <div className="hidden items-center gap-3 md:flex">
-          <WalletButton />
-        </div>
-        <button className="md:hidden text-foreground" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-      {mobileMenuOpen && (
-        <div className="border-t border-border/50 bg-background p-4 md:hidden">
-          <div className="flex flex-col gap-3">
-            {["dashboard", "events", "rewards", "activity"].map(page => (
-              <button
-                key={page}
-                onClick={() => { onNavigate(page); setMobileMenuOpen(false) }}
-                className="rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                {page === "dashboard" ? "Dashboard" : page === "events" ? "Eventos" : page === "rewards" ? "Recompensas" : "Actividad"}
-              </button>
-            ))}
-            {isAdmin && (
-              <button onClick={() => { onNavigate("admin"); setMobileMenuOpen(false) }} className="rounded-lg px-3 py-2 text-left text-sm text-primary transition-colors hover:bg-secondary">Admin</button>
-            )}
-            <div className="mt-2 border-t border-border pt-3">
-              <WalletButton />
-            </div>
-          </div>
-        </div>
-      )}
-    </nav>
-  )
-}
 
 export function Dashboard() {
-  const { setCurrentPage, objectives } = useApp()
+  const { setCurrentPage } = useApp()
   const { address } = useAccount()
   const { stats: userStats, isLoading } = useUserStats(address)
   const { isAdmin } = useIsAdmin(address)
@@ -84,7 +26,7 @@ export function Dashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar onNavigate={setCurrentPage} />
+        <Navbar activePage="dashboard" />
         <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -99,7 +41,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar onNavigate={setCurrentPage} />
+      <Navbar activePage="dashboard" />
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:py-10">
         {/* Header */}
@@ -137,7 +79,7 @@ export function Dashboard() {
                 <p className="mt-3 font-display text-4xl font-bold tabular-nums text-foreground md:text-5xl">
                   {azistBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">Tokens disponibles para canjear</p>
+                <p className="mt-2 text-xs text-muted-foreground">Tokens disponibles</p>
               </div>
             </div>
           </div>
@@ -211,12 +153,7 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Recent Activity */}
           <div className="rounded-2xl border border-border/50 bg-card p-6 lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold text-foreground">Actividad reciente</h2>
-              <button onClick={() => setCurrentPage("activity")} className="flex items-center gap-1 text-sm text-primary hover:text-primary/80">
-                Ver todo <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+            <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Actividad reciente</h2>
             <div className="space-y-3">
               {activities.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No hay actividad registrada aun</p>
@@ -257,28 +194,8 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Objectives + Streak */}
+          {/* Streak */}
           <div className="space-y-6">
-            <div className="rounded-2xl border border-border/50 bg-card p-6">
-              <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Objetivos activos</h2>
-              <div className="space-y-4">
-                {objectives.map(obj => (
-                  <div key={obj.id}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Target className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-sm text-foreground">{obj.title}</span>
-                      </div>
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {obj.progress}/{obj.total}
-                      </span>
-                    </div>
-                    <Progress value={(obj.progress / obj.total) * 100} className="h-1.5 bg-secondary" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="rounded-2xl border border-border/50 bg-card p-6">
               <h2 className="mb-4 font-display text-lg font-semibold text-foreground">Racha activa</h2>
               <div className="flex items-center gap-3">
@@ -309,9 +226,9 @@ export function Dashboard() {
         {/* Quick actions */}
         <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            { label: "Eventos", icon: Clock, page: "events" },
-            { label: "Recompensas", icon: Trophy, page: "rewards" },
-            { label: "Actividad", icon: TrendingUp, page: "activity" },
+            { label: "Crear Evento", icon: Plus, page: "create" },
+            { label: "Gestionar", icon: CalendarCheck, page: "manage" },
+            { label: "Metricas", icon: BarChart3, page: "metrics" },
             { label: "Admin", icon: Target, page: "admin", adminOnly: true },
           ].filter(a => !a.adminOnly || isAdmin).map(action => (
             <button

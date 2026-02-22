@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContract, useChainId } from "wagmi";
-import { presenceRegistryAbi, getContractAddress } from "@/lib/contracts";
+import { presenceRegistryAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 import { useContractTransaction } from "../useContractTransaction";
 
 // READ HOOKS
@@ -15,7 +15,7 @@ export function usePresence(epochId: bigint, address?: `0x${string}`) {
     functionName: "getPresence",
     args: [epochId, address!],
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "presenceRegistry"),
     },
   });
 
@@ -36,7 +36,7 @@ export function useTotalCheckIns(address?: `0x${string}`) {
     functionName: "totalCheckIns",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "presenceRegistry"),
     },
   });
 
@@ -56,6 +56,7 @@ export function useEpochParticipants(epochId: bigint) {
     abi: presenceRegistryAbi,
     functionName: "getEpochParticipants",
     args: [epochId],
+    query: { enabled: isContractDeployed(chainId, "presenceRegistry") },
   });
 
   return {
@@ -75,7 +76,7 @@ export function useIsRewardEligible(epochId: bigint, address?: `0x${string}`) {
     functionName: "isRewardEligible",
     args: [epochId, address!],
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "presenceRegistry"),
     },
   });
 

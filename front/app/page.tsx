@@ -4,10 +4,10 @@ import { useApp } from "@/lib/app-context"
 import { useAccount } from "wagmi"
 import { LandingPage } from "@/components/landing-page"
 import { Dashboard } from "@/components/dashboard"
-import { EventsPage } from "@/components/events-page"
-import { RewardsPage } from "@/components/rewards-page"
-import { ActivityPage } from "@/components/activity-page"
-import { AdminPanel } from "@/components/admin-panel"
+import { AdminPage } from "@/components/admin-page"
+import { CreateEventPage } from "@/components/create-event-page"
+import { ManageEventsPage } from "@/components/manage-events-page"
+import { MetricsPage } from "@/components/metrics-page"
 import { useEffect } from "react"
 
 export default function Home() {
@@ -21,11 +21,9 @@ export default function Home() {
   }, [isConnected, currentPage, setCurrentPage])
 
   useEffect(() => {
-    const protectedPages = ["dashboard", "rewards", "activity", "admin"]
+    const protectedPages = ["dashboard", "admin", "create", "manage", "metrics"]
     if (!isConnected && protectedPages.includes(currentPage)) {
-      if (currentPage !== "events") {
-        setCurrentPage("landing")
-      }
+      setCurrentPage("landing")
     }
   }, [isConnected, currentPage, setCurrentPage])
 
@@ -35,14 +33,14 @@ export default function Home() {
         return <LandingPage />
       case "dashboard":
         return <Dashboard />
-      case "events":
-        return <EventsPage />
-      case "rewards":
-        return <RewardsPage />
-      case "activity":
-        return <ActivityPage />
       case "admin":
-        return <AdminPanel />
+        return <AdminPage />
+      case "create":
+        return <CreateEventPage />
+      case "manage":
+        return <ManageEventsPage />
+      case "metrics":
+        return <MetricsPage />
       default:
         return <LandingPage />
     }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePublicClient, useChainId } from "wagmi";
-import { formatEther } from "viem";
+import { formatEther, zeroAddress } from "viem";
 import {
   rewardDistributorAbi,
   presenceRegistryAbi,
@@ -23,19 +23,20 @@ export function useActivityLogs(address?: `0x${string}`) {
       return;
     }
 
+    const rewardDistributorAddress = getContractAddress(chainId, "rewardDistributor");
+    const presenceRegistryAddress = getContractAddress(chainId, "presenceRegistry");
+
+    // Skip if contracts not deployed (zero address)
+    if (rewardDistributorAddress === zeroAddress || presenceRegistryAddress === zeroAddress) {
+      setActivities([]);
+      return;
+    }
+
     const fetchLogs = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const rewardDistributorAddress = getContractAddress(
-          chainId,
-          "rewardDistributor"
-        );
-        const presenceRegistryAddress = getContractAddress(
-          chainId,
-          "presenceRegistry"
-        );
 
         // Fetch RewardDistributed events
         const rewardLogs = await publicClient.getLogs({

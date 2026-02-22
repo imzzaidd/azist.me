@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContract, useChainId } from "wagmi";
-import { streakTrackerAbi, getContractAddress } from "@/lib/contracts";
+import { streakTrackerAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 
 export function useCurrentStreak(address?: `0x${string}`) {
   const chainId = useChainId();
@@ -12,7 +12,7 @@ export function useCurrentStreak(address?: `0x${string}`) {
     functionName: "getCurrentStreak",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "streakTracker"),
     },
   });
 
@@ -33,7 +33,7 @@ export function useStreakMultiplier(address?: `0x${string}`) {
     functionName: "getStreakMultiplier",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "streakTracker"),
     },
   });
 

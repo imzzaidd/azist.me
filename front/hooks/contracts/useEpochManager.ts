@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContract, useChainId } from "wagmi";
-import { epochManagerAbi, getContractAddress } from "@/lib/contracts";
+import { epochManagerAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 import { useContractTransaction } from "../useContractTransaction";
 
 // READ HOOKS
@@ -13,6 +13,7 @@ export function useEpochCount() {
     address: getContractAddress(chainId, "epochManager"),
     abi: epochManagerAbi,
     functionName: "epochCount",
+    query: { enabled: isContractDeployed(chainId, "epochManager") },
   });
 
   return {
@@ -32,7 +33,7 @@ export function useEpoch(epochId: bigint) {
     functionName: "getEpoch",
     args: [epochId],
     query: {
-      enabled: epochId > 0n,
+      enabled: epochId > 0n && isContractDeployed(chainId, "epochManager"),
     },
   });
 

@@ -25,6 +25,7 @@ export interface EventItem {
   maxRewardDuration: number;
   attendees: number;
   maxParticipants: number;
+  startTimestamp: number;
   attendanceStatus?: AttendanceStatus;
   arrivedAt?: string;
   checkInTime?: number;
@@ -41,17 +42,6 @@ export interface Activity {
   type: string;
 }
 
-export interface Reward {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  azistCost: number;
-  status: "available" | "insufficient" | "sold-out";
-  expirationDate: string;
-  code?: string;
-}
-
 export interface UserStats {
   azistBalance: number;
   xp: number;
@@ -60,13 +50,6 @@ export interface UserStats {
   levelMultiplier: number;
   streak: number;
   streakMultiplier: number;
-}
-
-export interface Objective {
-  id: string;
-  title: string;
-  progress: number;
-  total: number;
 }
 
 export const AREA_NAMES = [

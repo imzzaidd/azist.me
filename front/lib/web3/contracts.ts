@@ -1,4 +1,4 @@
-import { type Address } from "viem";
+import { type Address, zeroAddress } from "viem";
 
 export type ContractName =
   | "roleManager"
@@ -28,12 +28,19 @@ const addresses: Record<number, ContractAddresses> = {
   },
 };
 
+const DEFAULT_CHAIN_ID = 11155111; // Sepolia
+
 export function getContractAddress(
-  chainId: number,
+  chainId: number | undefined,
   contract: ContractName
 ): Address {
-  const chain = addresses[chainId];
-  if (!chain)
-    throw new Error(`No contract addresses configured for chain ${chainId}`);
+  const chain = addresses[chainId ?? DEFAULT_CHAIN_ID] ?? addresses[DEFAULT_CHAIN_ID];
   return chain[contract];
+}
+
+export function isContractDeployed(
+  chainId: number | undefined,
+  contract: ContractName
+): boolean {
+  return getContractAddress(chainId, contract) !== zeroAddress;
 }

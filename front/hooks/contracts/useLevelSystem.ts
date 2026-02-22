@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContract, useChainId } from "wagmi";
-import { levelSystemAbi, getContractAddress } from "@/lib/contracts";
+import { levelSystemAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 
 export function useTotalXp(address?: `0x${string}`) {
   const chainId = useChainId();
@@ -12,7 +12,7 @@ export function useTotalXp(address?: `0x${string}`) {
     functionName: "getTotalXp",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "levelSystem"),
     },
   });
 
@@ -33,7 +33,7 @@ export function useLevel(address?: `0x${string}`) {
     functionName: "getLevel",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "levelSystem"),
     },
   });
 
@@ -54,7 +54,7 @@ export function useLevelMultiplier(address?: `0x${string}`) {
     functionName: "getLevelMultiplier",
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "levelSystem"),
     },
   });
 

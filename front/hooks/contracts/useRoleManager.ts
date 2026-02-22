@@ -2,7 +2,7 @@
 
 import { useReadContract, useChainId } from "wagmi";
 import { keccak256, toHex } from "viem";
-import { roleManagerAbi, getContractAddress } from "@/lib/contracts";
+import { roleManagerAbi, getContractAddress, isContractDeployed } from "@/lib/contracts";
 
 const DEFAULT_ADMIN_ROLE =
   "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
@@ -18,7 +18,7 @@ export function useIsAdmin(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [DEFAULT_ADMIN_ROLE, address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "roleManager"),
     },
   });
 
@@ -39,7 +39,7 @@ export function useIsEpochCreator(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [EPOCH_CREATOR_ROLE, address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "roleManager"),
     },
   });
 
@@ -60,7 +60,7 @@ export function useIsValidator(address?: `0x${string}`) {
     functionName: "hasRole",
     args: address ? [VALIDATOR_ROLE, address] : undefined,
     query: {
-      enabled: !!address,
+      enabled: !!address && isContractDeployed(chainId, "roleManager"),
     },
   });
 

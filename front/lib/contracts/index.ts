@@ -10,5 +10,5 @@ export { badgeManagerAbi } from "./abis/badgeManager";
 export { rewardDistributorAbi } from "./abis/rewardDistributor";
 
 // Contract address helper
-export { getContractAddress } from "../web3/contracts";
+export { getContractAddress, isContractDeployed } from "../web3/contracts";
 export type { ContractName } from "../web3/contracts";
