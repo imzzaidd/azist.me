@@ -1,28 +1,56 @@
 "use client"
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
-import { AREA_NAMES, AREA_IMAGES, type EventItem, type EventStatus } from "@/lib/types"
+import { AREA_NAMES, AREA_IMAGES, type EventItem, type EventStatus, type Activity, type AttendanceStatus } from "@/lib/types"
 
 const STORAGE_KEY = "azist_local_events"
+const REWARDS_KEY = "azist_local_rewards"
 
-function loadEvents(): EventItem[] {
-  if (typeof window === "undefined") return []
+// --- Persisted types ---
+
+interface LocalParticipant {
+  address: string
+  status: AttendanceStatus
+  checkInTime: number
+}
+
+interface LocalBadge {
+  eventId: string
+  eventName: string
+  category: string
+  date: string
+  azistEarned: number
+}
+
+interface LocalUserRewards {
+  azistBalance: number
+  xp: number
+  badges: LocalBadge[]
+  activities: Activity[]
+}
+
+// --- Storage helpers ---
+
+function load<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as EventItem[]
+    const raw = localStorage.getItem(key)
+    if (!raw) return fallback
+    return JSON.parse(raw) as T
   } catch {
-    return []
+    return fallback
   }
 }
 
-function saveEvents(events: EventItem[]) {
+function save(key: string, value: unknown) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
+    localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // storage full or unavailable — silently ignore
+    // storage full — silently ignore
   }
 }
+
+// --- Context type ---
 
 interface LocalEventsContextType {
   events: EventItem[]
@@ -35,34 +63,56 @@ interface LocalEventsContextType {
     maxParticipants: number
   }) => void
   updateStatus: (id: string, status: EventStatus) => void
+  // Participation
+  checkIn: (eventId: string, address: string) => void
+  checkOut: (eventId: string, address: string) => void
+  getParticipants: (eventId: string) => LocalParticipant[]
+  getAttendanceStatus: (eventId: string, address: string) => AttendanceStatus
+  verifyAttendance: (eventId: string, address: string) => void
+  disputeAttendance: (eventId: string, address: string) => void
+  // Rewards
+  finalizeAndDistribute: (eventId: string) => void
+  getUserRewards: (address: string) => LocalUserRewards
 }
 
 const LocalEventsContext = createContext<LocalEventsContextType | undefined>(undefined)
 
+// Participants stored separately per event
+function participantsKey(eventId: string) {
+  return `azist_participants_${eventId}`
+}
+
+function rewardsForUser(address: string): LocalUserRewards {
+  const all = load<Record<string, LocalUserRewards>>(REWARDS_KEY, {})
+  return all[address.toLowerCase()] ?? { azistBalance: 0, xp: 0, badges: [], activities: [] }
+}
+
+function saveUserRewards(address: string, rewards: LocalUserRewards) {
+  const all = load<Record<string, LocalUserRewards>>(REWARDS_KEY, {})
+  all[address.toLowerCase()] = rewards
+  save(REWARDS_KEY, all)
+}
+
 export function LocalEventsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<EventItem[]>([])
   const [hydrated, setHydrated] = useState(false)
+  // Force re-render trigger for rewards reads
+  const [rewardsVersion, setRewardsVersion] = useState(0)
 
-  // Load from localStorage on mount (client only)
   useEffect(() => {
-    setEvents(loadEvents())
+    setEvents(load<EventItem[]>(STORAGE_KEY, []))
     setHydrated(true)
   }, [])
 
-  // Persist to localStorage on every change (after initial hydration)
   useEffect(() => {
-    if (hydrated) {
-      saveEvents(events)
-    }
+    if (hydrated) save(STORAGE_KEY, events)
   }, [events, hydrated])
 
+  // --- Event CRUD ---
+
   const addEvent = useCallback((params: {
-    name: string
-    location: string
-    area: number
-    startTime: number
-    endTime: number
-    maxParticipants: number
+    name: string; location: string; area: number
+    startTime: number; endTime: number; maxParticipants: number
   }) => {
     const startDate = new Date(params.startTime * 1000)
     const endDate = new Date(params.endTime * 1000)
@@ -98,8 +148,157 @@ export function LocalEventsProvider({ children }: { children: ReactNode }) {
     setEvents(prev => prev.map(e => e.id === id ? { ...e, status } : e))
   }, [])
 
+  // --- Participation ---
+
+  const checkIn = useCallback((eventId: string, address: string) => {
+    const key = participantsKey(eventId)
+    const participants = load<LocalParticipant[]>(key, [])
+    const existing = participants.find(p => p.address.toLowerCase() === address.toLowerCase())
+    if (existing) return // already checked in
+
+    participants.push({ address: address.toLowerCase(), status: "arrived", checkInTime: Math.floor(Date.now() / 1000) })
+    save(key, participants)
+
+    // Increment attendee count
+    setEvents(prev => prev.map(e =>
+      e.id === eventId ? { ...e, attendees: e.attendees + 1 } : e
+    ))
+
+    // Add activity
+    const rewards = rewardsForUser(address)
+    const event = events.find(e => e.id === eventId)
+    rewards.activities.unshift({
+      id: `checkin-${eventId}-${Date.now()}`,
+      eventName: `Check-In: ${event?.title || `Evento #${eventId}`}`,
+      date: new Date().toLocaleDateString("es-ES"),
+      azist: 0,
+      xp: 0,
+      status: "Registrado",
+      txHash: "",
+      type: "checkin",
+    })
+    saveUserRewards(address, rewards)
+    setRewardsVersion(v => v + 1)
+  }, [events])
+
+  const checkOut = useCallback((eventId: string, address: string) => {
+    const key = participantsKey(eventId)
+    const participants = load<LocalParticipant[]>(key, [])
+    const updated = participants.map(p =>
+      p.address.toLowerCase() === address.toLowerCase()
+        ? { ...p, status: "leaving" as AttendanceStatus }
+        : p
+    )
+    save(key, updated)
+    setRewardsVersion(v => v + 1)
+  }, [])
+
+  const getParticipants = useCallback((eventId: string): LocalParticipant[] => {
+    return load<LocalParticipant[]>(participantsKey(eventId), [])
+  }, [rewardsVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getAttendanceStatus = useCallback((eventId: string, address: string): AttendanceStatus => {
+    const participants = load<LocalParticipant[]>(participantsKey(eventId), [])
+    const p = participants.find(x => x.address.toLowerCase() === address.toLowerCase())
+    return p?.status ?? "none"
+  }, [rewardsVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const verifyAttendance = useCallback((eventId: string, address: string) => {
+    const key = participantsKey(eventId)
+    const participants = load<LocalParticipant[]>(key, [])
+    const updated = participants.map(p =>
+      p.address.toLowerCase() === address.toLowerCase()
+        ? { ...p, status: "confirmed" as AttendanceStatus }
+        : p
+    )
+    save(key, updated)
+    setRewardsVersion(v => v + 1)
+  }, [])
+
+  const disputeAttendance = useCallback((eventId: string, address: string) => {
+    const key = participantsKey(eventId)
+    const participants = load<LocalParticipant[]>(key, [])
+    const updated = participants.map(p =>
+      p.address.toLowerCase() === address.toLowerCase()
+        ? { ...p, status: "rejected" as AttendanceStatus }
+        : p
+    )
+    save(key, updated)
+    setRewardsVersion(v => v + 1)
+  }, [])
+
+  // --- Finalize: distribute AZIST + mint NFT badge ---
+
+  const finalizeAndDistribute = useCallback((eventId: string) => {
+    const event = events.find(e => e.id === eventId)
+    if (!event) return
+
+    const participants = load<LocalParticipant[]>(participantsKey(eventId), [])
+    const confirmed = participants.filter(p => p.status === "confirmed" || p.status === "arrived" || p.status === "leaving")
+
+    const dateStr = new Date().toLocaleDateString("es-ES")
+
+    for (const p of confirmed) {
+      const azistReward = Math.round(event.baseReward * event.categoryMultiplier)
+      const xpReward = Math.floor(azistReward * 10)
+      const rewards = rewardsForUser(p.address)
+
+      // Add AZIST tokens
+      rewards.azistBalance += azistReward
+      rewards.xp += xpReward
+
+      // Mint NFT badge
+      rewards.badges.push({
+        eventId,
+        eventName: event.title,
+        category: event.category,
+        date: event.date,
+        azistEarned: azistReward,
+      })
+
+      // Add reward activity
+      rewards.activities.unshift({
+        id: `reward-${eventId}-${p.address}-${Date.now()}`,
+        eventName: event.title,
+        date: dateStr,
+        azist: azistReward,
+        xp: xpReward,
+        status: "Completado",
+        txHash: "",
+        type: "reward",
+      })
+
+      // Mark participant as confirmed
+      const key = participantsKey(eventId)
+      const all = load<LocalParticipant[]>(key, [])
+      save(key, all.map(x =>
+        x.address.toLowerCase() === p.address.toLowerCase()
+          ? { ...x, status: "confirmed" as AttendanceStatus }
+          : x
+      ))
+
+      saveUserRewards(p.address, rewards)
+    }
+
+    // Update event status
+    setEvents(prev => prev.map(e =>
+      e.id === eventId ? { ...e, status: "finalized" as EventStatus } : e
+    ))
+
+    setRewardsVersion(v => v + 1)
+  }, [events])
+
+  const getUserRewards = useCallback((address: string): LocalUserRewards => {
+    return rewardsForUser(address)
+  }, [rewardsVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <LocalEventsContext.Provider value={{ events, addEvent, updateStatus }}>
+    <LocalEventsContext.Provider value={{
+      events, addEvent, updateStatus,
+      checkIn, checkOut, getParticipants, getAttendanceStatus,
+      verifyAttendance, disputeAttendance,
+      finalizeAndDistribute, getUserRewards,
+    }}>
       {children}
     </LocalEventsContext.Provider>
   )

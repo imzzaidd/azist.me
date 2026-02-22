@@ -1,10 +1,12 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { useEpochs } from "@/hooks/contracts/useEpochs"
 import { useUserStats } from "@/hooks/contracts/useUserStats"
 import { useCheckIn, useCheckOut, usePresence } from "@/hooks/contracts/usePresenceRegistry"
+import { useLocalEvents } from "@/lib/local-events"
+import { isContractDeployed } from "@/lib/contracts"
 import { Navbar } from "@/components/navbar"
 import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
@@ -306,26 +308,46 @@ function EventDetail({ event, onBack, onCheckin, isCheckinPending }: {
 /* --- Attendance Tracker (after check-in) --- */
 function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete: () => void }) {
   const { address } = useAccount()
-  const { checkOut, isPending: isCheckoutPending } = useCheckOut()
+  const chainId = useChainId()
+  const deployed = isContractDeployed(chainId, "presenceRegistry")
+  const { checkOut: onChainCheckOut, isPending: isCheckoutPending } = useCheckOut()
+  const { checkOut: localCheckOut, getAttendanceStatus, getUserRewards } = useLocalEvents()
   const epochId = BigInt(event.id)
   const { presence, refetch: refetchPresence } = usePresence(epochId, address)
+  const [localStatus, setLocalStatus] = useState<AttendanceStatus>("arrived")
 
-  // Poll presence status every 10 seconds
+  // Poll presence status every 10 seconds (on-chain only)
   useEffect(() => {
-    const interval = setInterval(() => {
-      refetchPresence()
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [refetchPresence])
+    if (deployed) {
+      const interval = setInterval(() => { refetchPresence() }, 10000)
+      return () => clearInterval(interval)
+    }
+  }, [refetchPresence, deployed])
 
-  // Derive attendance status from on-chain presence
+  // Poll local status
+  useEffect(() => {
+    if (!deployed && address) {
+      const interval = setInterval(() => {
+        setLocalStatus(getAttendanceStatus(event.id, address))
+      }, 2000)
+      setLocalStatus(getAttendanceStatus(event.id, address))
+      return () => clearInterval(interval)
+    }
+  }, [deployed, address, event.id, getAttendanceStatus])
+
+  // Derive attendance status
   const attendanceStatus: AttendanceStatus = useMemo(() => {
+    if (!deployed) return localStatus
     if (!presence) return "arrived"
     const state = typeof presence === "object" && "state" in presence ? Number((presence as { state: unknown }).state) : 0
     return PRESENCE_STATE_MAP[state] || "arrived"
-  }, [presence])
+  }, [deployed, localStatus, presence])
 
   if (attendanceStatus === "confirmed") {
+    const badge = !deployed && address
+      ? getUserRewards(address).badges.find(b => b.eventId === event.id)
+      : null
+
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center animate-slide-up">
@@ -334,7 +356,22 @@ function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete
           </div>
           <h2 className="font-display text-2xl font-bold text-foreground">Asistencia confirmada</h2>
           <p className="mt-2 text-muted-foreground">{event.title}</p>
-          <p className="mt-4 text-sm text-muted-foreground">Tu recompensa sera distribuida cuando el evento se finalice.</p>
+
+          {badge ? (
+            <div className="mx-auto mt-6 max-w-sm space-y-3">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-sm font-semibold text-foreground">NFT Badge recibido</p>
+                <p className="mt-1 text-xs text-muted-foreground">{badge.eventName} - {badge.category}</p>
+              </div>
+              <div className="rounded-xl border border-success/20 bg-success/5 p-4">
+                <p className="text-sm font-semibold text-foreground">+{badge.azistEarned} AZIST ganados</p>
+                <p className="mt-1 text-xs text-muted-foreground">+{badge.azistEarned * 10} XP</p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">Tu recompensa sera distribuida cuando el evento se finalice.</p>
+          )}
+
           <Button onClick={onComplete} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">Continuar</Button>
         </div>
       </div>
@@ -360,7 +397,12 @@ function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete
 
   // Active attendance - waiting for check-out or validator confirmation
   const handleCheckOut = () => {
-    checkOut(epochId)
+    if (deployed) {
+      onChainCheckOut(epochId)
+    } else if (address) {
+      localCheckOut(event.id, address)
+      setLocalStatus("leaving")
+    }
   }
 
   return (
@@ -419,9 +461,12 @@ function AttendanceTracker({ event, onComplete }: { event: EventItem; onComplete
 export function EventsPage() {
   const { setCurrentPage, selectedEventId, setSelectedEventId } = useApp()
   const { isConnected, address } = useAccount()
+  const chainId = useChainId()
+  const deployed = isContractDeployed(chainId, "presenceRegistry")
   const { openConnectModal } = useConnectModal()
   const { events, isLoading } = useEpochs()
-  const { checkIn, isPending: isCheckinPending } = useCheckIn()
+  const { checkIn: onChainCheckIn, isPending: isCheckinPending } = useCheckIn()
+  const { checkIn: localCheckIn } = useLocalEvents()
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
   const [checkinEvent, setCheckinEvent] = useState<EventItem | null>(null)
   const [filter, setFilter] = useState<"all" | EventStatus>("all")
@@ -444,9 +489,13 @@ export function EventsPage() {
       openConnectModal?.()
       return
     }
-    checkIn(BigInt(event.id))
+    if (deployed) {
+      onChainCheckIn(BigInt(event.id))
+    } else if (address) {
+      localCheckIn(event.id, address)
+    }
     setCheckinEvent(event)
-  }, [isConnected, openConnectModal, checkIn])
+  }, [isConnected, openConnectModal, onChainCheckIn, localCheckIn, deployed, address])
 
   if (checkinEvent) {
     return (

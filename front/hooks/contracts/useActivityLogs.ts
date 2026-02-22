@@ -8,11 +8,13 @@ import {
   presenceRegistryAbi,
   getContractAddress,
 } from "@/lib/contracts";
+import { useLocalEvents } from "@/lib/local-events";
 import type { Activity } from "@/lib/types";
 
 export function useActivityLogs(address?: `0x${string}`) {
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const { getUserRewards } = useLocalEvents();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -26,9 +28,10 @@ export function useActivityLogs(address?: `0x${string}`) {
     const rewardDistributorAddress = getContractAddress(chainId, "rewardDistributor");
     const presenceRegistryAddress = getContractAddress(chainId, "presenceRegistry");
 
-    // Skip if contracts not deployed (zero address)
+    // When contracts not deployed, use local activities
     if (rewardDistributorAddress === zeroAddress || presenceRegistryAddress === zeroAddress) {
-      setActivities([]);
+      const local = getUserRewards(address);
+      setActivities(local.activities);
       return;
     }
 

@@ -48,7 +48,7 @@ function ManageEvents() {
   const { closeEpoch, isPending: isClosing } = useCloseEpoch()
   const { finalizeEpoch, isPending: isFinalizing } = useFinalizeEpoch()
   const { batchDistribute, isPending: isDistributing } = useBatchDistribute()
-  const { updateStatus } = useLocalEvents()
+  const { updateStatus, finalizeAndDistribute } = useLocalEvents()
   const [actioningId, setActioningId] = useState<string | null>(null)
 
   const handleActivate = async (epochId: string) => {
@@ -79,7 +79,7 @@ function ManageEvents() {
       await finalizeEpoch(BigInt(epochId))
       setTimeout(() => { refetch(); setActioningId(null) }, 5000)
     } else {
-      updateStatus(epochId, "finalized")
+      finalizeAndDistribute(epochId)
       setActioningId(null)
     }
   }
@@ -188,20 +188,39 @@ function ManageEvents() {
 }
 
 function EpochAttendanceDetail({ epochId, onBack }: { epochId: string; onBack: () => void }) {
-  const { participants, isLoading } = useEpochParticipants(BigInt(epochId))
-  const { verify, isPending: isVerifying } = useVerifyPresence()
-  const { dispute, isPending: isDisputing } = useDisputePresence()
+  const chainId = useChainId()
+  const deployed = isContractDeployed(chainId, "presenceRegistry")
+  const { participants: onChainParticipants, isLoading } = useEpochParticipants(BigInt(epochId))
+  const { verify: onChainVerify, isPending: isVerifying } = useVerifyPresence()
+  const { dispute: onChainDispute, isPending: isDisputing } = useDisputePresence()
+  const { getParticipants, verifyAttendance, disputeAttendance } = useLocalEvents()
   const [actioningAddress, setActioningAddress] = useState<string | null>(null)
+  const [, forceUpdate] = useState(0)
 
-  const handleVerify = async (participant: `0x${string}`) => {
+  const localParticipants = !deployed ? getParticipants(epochId) : []
+  const participantList: { address: string; status?: string }[] = deployed
+    ? ((onChainParticipants as `0x${string}`[]) ?? []).map(a => ({ address: a }))
+    : localParticipants.map(p => ({ address: p.address, status: p.status }))
+
+  const handleVerify = async (participant: string) => {
     setActioningAddress(participant)
-    await verify(BigInt(epochId), participant)
+    if (deployed) {
+      await onChainVerify(BigInt(epochId), participant as `0x${string}`)
+    } else {
+      verifyAttendance(epochId, participant)
+      forceUpdate(v => v + 1)
+    }
     setActioningAddress(null)
   }
 
-  const handleDispute = async (participant: `0x${string}`) => {
+  const handleDispute = async (participant: string) => {
     setActioningAddress(participant)
-    await dispute(BigInt(epochId), participant, "Asistencia no verificada")
+    if (deployed) {
+      await onChainDispute(BigInt(epochId), participant as `0x${string}`, "Asistencia no verificada")
+    } else {
+      disputeAttendance(epochId, participant)
+      forceUpdate(v => v + 1)
+    }
     setActioningAddress(null)
   }
 
@@ -212,49 +231,56 @@ function EpochAttendanceDetail({ epochId, onBack }: { epochId: string; onBack: (
       </button>
 
       <h2 className="mb-2 font-display text-2xl font-bold text-foreground">Asistentes - Evento #{epochId}</h2>
-      <p className="mb-8 text-muted-foreground">{(participants as `0x${string}`[])?.length || 0} participantes registrados</p>
+      <p className="mb-8 text-muted-foreground">{participantList.length} participantes registrados</p>
 
-      {isLoading ? (
+      {isLoading && deployed ? (
         <div className="flex items-center justify-center py-20">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : (
         <div className="space-y-3">
-          {(participants as `0x${string}`[])?.map((addr) => (
-            <div key={addr} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-4">
+          {participantList.map((p) => (
+            <div key={p.address} className="flex items-center justify-between rounded-xl border border-border/50 bg-card p-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
-                  <Clock className="h-5 w-5 text-warning" />
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  p.status === "confirmed" ? "bg-success/10" : p.status === "rejected" ? "bg-destructive/10" : "bg-warning/10"
+                }`}>
+                  {p.status === "confirmed" ? <CheckCircle2 className="h-5 w-5 text-success" /> :
+                   p.status === "rejected" ? <XCircle className="h-5 w-5 text-destructive" /> :
+                   <Clock className="h-5 w-5 text-warning" />}
                 </div>
                 <div>
-                  <p className="font-mono text-sm font-medium text-foreground">{addr.slice(0, 6)}...{addr.slice(-4)}</p>
+                  <p className="font-mono text-sm font-medium text-foreground">{p.address.slice(0, 6)}...{p.address.slice(-4)}</p>
+                  {p.status && <p className="text-xs text-muted-foreground capitalize">{p.status}</p>}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  className="h-7 bg-success text-success-foreground hover:bg-success/90 px-2"
-                  disabled={actioningAddress === addr}
-                  onClick={() => handleVerify(addr)}
-                >
-                  {actioningAddress === addr && isVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 px-2"
-                  disabled={actioningAddress === addr}
-                  onClick={() => handleDispute(addr)}
-                >
-                  {actioningAddress === addr && isDisputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
+              {p.status !== "confirmed" && p.status !== "rejected" && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 bg-success text-success-foreground hover:bg-success/90 px-2"
+                    disabled={actioningAddress === p.address}
+                    onClick={() => handleVerify(p.address)}
+                  >
+                    {actioningAddress === p.address && isVerifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 px-2"
+                    disabled={actioningAddress === p.address}
+                    onClick={() => handleDispute(p.address)}
+                  >
+                    {actioningAddress === p.address && isDisputing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {!isLoading && (!participants || (participants as `0x${string}`[]).length === 0) && (
+      {participantList.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <UserCheck className="h-8 w-8 text-muted-foreground" />
