@@ -1,9 +1,11 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
 import { useCreateEpoch } from "@/hooks/contracts/useEpochManager"
+import { useLocalEvents } from "@/lib/local-events"
+import { isContractDeployed } from "@/lib/contracts"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { AREA_NAMES } from "@/lib/types"
@@ -13,9 +15,13 @@ import { useState } from "react"
 export function CreateEventPage() {
   const { setCurrentPage } = useApp()
   const { address } = useAccount()
+  const chainId = useChainId()
+  const deployed = isContractDeployed(chainId, "epochManager")
   const { isAdmin, isLoading: isLoadingAdmin } = useIsAdmin(address)
   const { createEpoch, isPending } = useCreateEpoch()
+  const { addEvent } = useLocalEvents()
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [form, setForm] = useState({
     name: "",
     location: "",
@@ -54,10 +60,23 @@ export function CreateEventPage() {
 
     const startDateTime = new Date(`${form.date}T${form.startTime}`)
     const endDateTime = new Date(`${form.date}T${form.endTime}`)
-    const startTimestamp = BigInt(Math.floor(startDateTime.getTime() / 1000))
-    const endTimestamp = BigInt(Math.floor(endDateTime.getTime() / 1000))
+    const startTs = Math.floor(startDateTime.getTime() / 1000)
+    const endTs = Math.floor(endDateTime.getTime() / 1000)
 
-    await createEpoch(form.name, form.location, form.area, startTimestamp, endTimestamp, form.maxParticipants)
+    if (deployed) {
+      await createEpoch(form.name, form.location, form.area, BigInt(startTs), BigInt(endTs), form.maxParticipants)
+    } else {
+      setIsSubmitting(true)
+      addEvent({
+        name: form.name,
+        location: form.location,
+        area: form.area,
+        startTime: startTs,
+        endTime: endTs,
+        maxParticipants: form.maxParticipants,
+      })
+      setIsSubmitting(false)
+    }
     setSubmitted(true)
   }
 
@@ -175,9 +194,9 @@ export function CreateEventPage() {
                 size="lg"
                 className="w-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90"
                 onClick={handleSubmit}
-                disabled={isPending || !form.name || !form.location || !form.date}
+                disabled={(isPending || isSubmitting) || !form.name || !form.location || !form.date}
               >
-                {isPending ? (
+                {(isPending || isSubmitting) ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Enviando transaccion...

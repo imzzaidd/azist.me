@@ -1,12 +1,14 @@
 "use client"
 
 import { useApp } from "@/lib/app-context"
-import { useAccount } from "wagmi"
+import { useAccount, useChainId } from "wagmi"
 import { useIsAdmin } from "@/hooks/contracts/useRoleManager"
 import { useEpochs } from "@/hooks/contracts/useEpochs"
 import { useActivateEpoch, useCloseEpoch, useFinalizeEpoch } from "@/hooks/contracts/useEpochManager"
 import { useEpochParticipants, useVerifyPresence, useDisputePresence } from "@/hooks/contracts/usePresenceRegistry"
 import { useBatchDistribute } from "@/hooks/contracts/useRewardDistributor"
+import { useLocalEvents } from "@/lib/local-events"
+import { isContractDeployed } from "@/lib/contracts"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import type { EventStatus } from "@/lib/types"
@@ -39,29 +41,47 @@ function StatusBadge({ status }: { status: EventStatus }) {
 }
 
 function ManageEvents() {
+  const chainId = useChainId()
+  const deployed = isContractDeployed(chainId, "epochManager")
   const { events, isLoading, refetch } = useEpochs()
   const { activateEpoch, isPending: isActivating } = useActivateEpoch()
   const { closeEpoch, isPending: isClosing } = useCloseEpoch()
   const { finalizeEpoch, isPending: isFinalizing } = useFinalizeEpoch()
   const { batchDistribute, isPending: isDistributing } = useBatchDistribute()
+  const { updateStatus } = useLocalEvents()
   const [actioningId, setActioningId] = useState<string | null>(null)
 
   const handleActivate = async (epochId: string) => {
     setActioningId(epochId)
-    await activateEpoch(BigInt(epochId))
-    setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    if (deployed) {
+      await activateEpoch(BigInt(epochId))
+      setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    } else {
+      updateStatus(epochId, "live")
+      setActioningId(null)
+    }
   }
 
   const handleClose = async (epochId: string) => {
     setActioningId(epochId)
-    await closeEpoch(BigInt(epochId))
-    setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    if (deployed) {
+      await closeEpoch(BigInt(epochId))
+      setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    } else {
+      updateStatus(epochId, "ended")
+      setActioningId(null)
+    }
   }
 
   const handleFinalize = async (epochId: string) => {
     setActioningId(epochId)
-    await finalizeEpoch(BigInt(epochId))
-    setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    if (deployed) {
+      await finalizeEpoch(BigInt(epochId))
+      setTimeout(() => { refetch(); setActioningId(null) }, 5000)
+    } else {
+      updateStatus(epochId, "finalized")
+      setActioningId(null)
+    }
   }
 
   if (isLoading) {

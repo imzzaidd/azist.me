@@ -14,11 +14,12 @@ import {
   AREA_IMAGES,
   type EventItem,
 } from "@/lib/types";
+import { useLocalEvents } from "@/lib/local-events";
 
 export function useEpochs() {
   const chainId = useChainId();
-
   const deployed = isContractDeployed(chainId, "epochManager");
+  const { events: localEvents } = useLocalEvents();
 
   // First, get the total count of epochs
   const { data: epochCount, isLoading: isLoadingCount } = useReadContract({
@@ -89,7 +90,7 @@ export function useEpochs() {
     });
 
   // Transform on-chain data to UI EventItem format
-  const events: EventItem[] = useMemo(() => {
+  const onChainEvents: EventItem[] = useMemo(() => {
     if (!epochsData || !areaConfigsData) return [];
 
     // Create area config lookup map
@@ -170,7 +171,9 @@ export function useEpochs() {
       .filter((event): event is EventItem => event !== null);
   }, [epochsData, areaConfigsData, uniqueAreas]);
 
-  const isLoading = isLoadingCount || isLoadingEpochs || isLoadingAreas;
+  // When contracts aren't deployed, use local events
+  const events = deployed ? onChainEvents : localEvents;
+  const isLoading = deployed ? (isLoadingCount || isLoadingEpochs || isLoadingAreas) : false;
 
   return {
     events,

@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Web3Provider } from '@/lib/web3/providers'
 import { AppProvider } from '@/lib/app-context'
+import { LocalEventsProvider } from '@/lib/local-events'
 import '@rainbow-me/rainbowkit/styles.css'
 import './globals.css'
 
@@ -52,7 +53,9 @@ export default function RootLayout({
         <Web3Provider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             <AppProvider>
-              {children}
+              <LocalEventsProvider>
+                {children}
+              </LocalEventsProvider>
             </AppProvider>
           </ThemeProvider>
         </Web3Provider>
