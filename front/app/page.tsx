@@ -4,6 +4,7 @@ import { useApp } from "@/lib/app-context"
 import { useAccount } from "wagmi"
 import { LandingPage } from "@/components/landing-page"
 import { Dashboard } from "@/components/dashboard"
+import { EventsPage } from "@/components/events-page"
 import { AdminPage } from "@/components/admin-page"
 import { CreateEventPage } from "@/components/create-event-page"
 import { ManageEventsPage } from "@/components/manage-events-page"
@@ -21,7 +22,7 @@ export default function Home() {
   }, [isConnected, currentPage, setCurrentPage])
 
   useEffect(() => {
-    const protectedPages = ["dashboard", "admin", "create", "manage", "metrics"]
+    const protectedPages = ["dashboard", "events", "admin", "create", "manage", "metrics"]
     if (!isConnected && protectedPages.includes(currentPage)) {
       setCurrentPage("landing")
     }
@@ -33,6 +34,8 @@ export default function Home() {
         return <LandingPage />
       case "dashboard":
         return <Dashboard />
+      case "events":
+        return <EventsPage />
       case "admin":
         return <AdminPage />
       case "create":

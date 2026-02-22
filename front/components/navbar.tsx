@@ -9,10 +9,11 @@ import { useState } from "react"
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard" },
+  { id: "events", label: "Eventos" },
   { id: "admin", label: "Admin", adminOnly: true },
-  { id: "create", label: "Crear Evento" },
-  { id: "manage", label: "Gestionar Eventos" },
-  { id: "metrics", label: "Metricas" },
+  { id: "create", label: "Crear Evento", adminOnly: true },
+  { id: "manage", label: "Gestionar Eventos", adminOnly: true },
+  { id: "metrics", label: "Metricas", adminOnly: true },
 ]
 
 export function Navbar({ activePage }: { activePage: string }) {

@@ -9,7 +9,7 @@ import { isContractDeployed } from "@/lib/contracts"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { AREA_NAMES } from "@/lib/types"
-import { Plus, MapPin, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
+import { Plus, MapPin, CheckCircle2, AlertCircle, Loader2, Share2, Copy, Check } from "lucide-react"
 import { useState } from "react"
 
 export function CreateEventPage() {
@@ -19,9 +19,11 @@ export function CreateEventPage() {
   const deployed = isContractDeployed(chainId, "epochManager")
   const { isAdmin, isLoading: isLoadingAdmin } = useIsAdmin(address)
   const { createEpoch, isPending } = useCreateEpoch()
-  const { addEvent } = useLocalEvents()
+  const { addEvent, events: localEvents } = useLocalEvents()
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [form, setForm] = useState({
     name: "",
     location: "",
@@ -65,8 +67,10 @@ export function CreateEventPage() {
 
     if (deployed) {
       await createEpoch(form.name, form.location, form.area, BigInt(startTs), BigInt(endTs), form.maxParticipants)
+      setCreatedEventId(null) // on-chain ID not easily available
     } else {
       setIsSubmitting(true)
+      const nextId = String(localEvents.length + 1)
       addEvent({
         name: form.name,
         location: form.location,
@@ -75,6 +79,7 @@ export function CreateEventPage() {
         endTime: endTs,
         maxParticipants: form.maxParticipants,
       })
+      setCreatedEventId(nextId)
       setIsSubmitting(false)
     }
     setSubmitted(true)
@@ -90,9 +95,45 @@ export function CreateEventPage() {
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
                 <CheckCircle2 className="h-10 w-10 text-success" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-foreground">Transaccion enviada</h2>
-              <p className="mt-2 text-muted-foreground">La transaccion de creacion del evento ha sido enviada a la blockchain</p>
-              <Button onClick={() => setSubmitted(false)} className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90">Crear otro evento</Button>
+              <h2 className="font-display text-2xl font-bold text-foreground">Evento creado</h2>
+              <p className="mt-2 text-muted-foreground">El evento ha sido creado exitosamente</p>
+
+              {createdEventId && (
+                <div className="mx-auto mt-6 max-w-md rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <p className="mb-3 text-sm font-semibold text-foreground flex items-center justify-center gap-2">
+                    <Share2 className="h-4 w-4 text-primary" /> Comparte este enlace con los asistentes
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={`${typeof window !== "undefined" ? window.location.origin : ""}?page=events&event=${createdEventId}`}
+                      className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs text-foreground font-mono"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={async () => {
+                        const url = `${window.location.origin}?page=events&event=${createdEventId}`
+                        if (navigator.share) {
+                          await navigator.share({ title: "Evento azist.me", url })
+                        } else {
+                          await navigator.clipboard.writeText(url)
+                          setLinkCopied(true)
+                          setTimeout(() => setLinkCopied(false), 2000)
+                        }
+                      }}
+                    >
+                      {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <Button onClick={() => { setSubmitted(false); setCreatedEventId(null); setLinkCopied(false) }} variant="outline" className="border-border text-foreground">Crear otro evento</Button>
+                <Button onClick={() => setCurrentPage("manage")} className="bg-primary text-primary-foreground hover:bg-primary/90">Ver eventos</Button>
+              </div>
             </div>
           </div>
         ) : (
